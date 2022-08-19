@@ -47,7 +47,7 @@
 }
 
 
-#Const	Version	"v0.0.2beta"
+#Const	Version	"v0.1.0"
 #Const	ScriptName	"Grand2020.Script.txt"
 
 #Const  C_AllowedPlaceMode [
