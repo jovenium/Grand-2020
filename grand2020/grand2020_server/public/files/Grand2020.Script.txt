@@ -47,7 +47,7 @@
 }
 
 
-#Const	Version	"v0.1.0"
+#Const	Version	"v0.1.1"
 #Const	ScriptName	"Grand2020.Script.txt"
 
 #Const  C_AllowedPlaceMode [
@@ -1338,6 +1338,7 @@ Void OnListenerResponse(Text _response) {
 	foreach( block in BlockLists.JsonBlocks){
 		yield;
 		declare BlockModel = GetBlockModelFromName(block.ModelName);
+		log(BlockModel);
 		if (block.Modif == "Place" || block.Modif == "PlaceAir"){
 			EnableEditorInputsCustomProcessing = True; //> stop the local player inputs to avoid desync due to the custom air_mapping and the user interactions.
 			NbClassicBlocks = ClassicBlocks.count;
@@ -1346,27 +1347,33 @@ Void OnListenerResponse(Text _response) {
 			NextMapElemColor = convertBlockColor(block.Color);
 			if(block.GhostMode){
 				Simulation_GhostMode(BlockModel, block.Coord, convertBlockDirection(block.Direction), False);
-			}else{		
-				declare Boolean result = PlaceBlock(BlockModel, block.Coord, convertBlockDirection(block.Direction));
-				if (!result && block.ForcePlace) {
-					OnGround = False;
-					BiggestX = 0;
-					BiggestZ = 0;
-					CanPlaceBlock(BlockModel, block.Coord, convertBlockDirection(block.Direction), OnGround, VariantIndex);
-					if(OnGround){
-						Variant <=> BlockModel.VariantGround;
-					}else{
-						Variant <=> BlockModel.VariantAir;
+			}else{
+				if(BlockModel != Null){		
+					declare Boolean result = PlaceBlock(BlockModel, block.Coord, convertBlockDirection(block.Direction));
+					if (!result && block.ForcePlace) {
+						OnGround = False;
+						BiggestX = 0;
+						BiggestZ = 0;
+						CanPlaceBlock(BlockModel, block.Coord, convertBlockDirection(block.Direction), OnGround, VariantIndex);
+						if(OnGround){
+							Variant <=> BlockModel.VariantGround;
+						}else{
+							Variant <=> BlockModel.VariantAir;
+						}
+						if(Variant != Null){
+							foreach(BlockUnitModel in Variant.BlockUnitModels){
+								if(BlockUnitModel.RelativeOffset.X > BiggestX) BiggestX = BlockUnitModel.RelativeOffset.X;
+								if(BlockUnitModel.RelativeOffset.Z > BiggestZ) BiggestZ = BlockUnitModel.RelativeOffset.Z;
+							}
+							foreach(BlockUnitModel in Variant.BlockUnitModels){
+								CalculatedOffset = GetRotatedAndTranslatedOffset(BlockUnitModel.RelativeOffset, block.Coord, convertBlockDirection(block.Direction), BiggestX, BiggestZ);
+								RemoveBlock(CalculatedOffset);
+							}
+						}else{
+							RemoveBlock(block.Coord);
+						}
+						PlaceBlock(BlockModel, block.Coord, convertBlockDirection(block.Direction));
 					}
-					foreach(BlockUnitModel in Variant.BlockUnitModels){
-						if(BlockUnitModel.RelativeOffset.X > BiggestX) BiggestX = BlockUnitModel.RelativeOffset.X;
-						if(BlockUnitModel.RelativeOffset.Z > BiggestZ) BiggestZ = BlockUnitModel.RelativeOffset.Z;
-					}
-					foreach(BlockUnitModel in Variant.BlockUnitModels){
-						CalculatedOffset = GetRotatedAndTranslatedOffset(BlockUnitModel.RelativeOffset, block.Coord, convertBlockDirection(block.Direction), BiggestX, BiggestZ);
-						RemoveBlock(CalculatedOffset);
-					}
-					PlaceBlock(BlockModel, block.Coord, convertBlockDirection(block.Direction));
 				}
 				
 				AutoSave();
