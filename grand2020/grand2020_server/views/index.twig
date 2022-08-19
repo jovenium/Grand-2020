@@ -1,0 +1,76 @@
+{% extends 'layout.twig' %}
+
+
+
+{% block body %}
+
+
+
+<!--<img src="/images/banner103.jpg" class="img-fluid" alt="banner image">-->
+<div class="banner brake-5">
+
+</div>
+
+<div class="mask">
+<figure class="text-center">
+<div class="container">
+  <div class="row justify-content-center">
+      <div class="col-7 color-white">
+          <blockquote class="blockquote">
+            <h2>Welcome to GRAND2020</h2>
+          </blockquote>
+           <h5>A Trackmania plugin to build maps with your buddies.</h5>
+      </div>
+  </div>
+  <div class="brake">
+  </div>
+  <div class="row justify-content-center">
+    <div class="col-4">
+      <a class="btn btn-mygreen" href="/download">Download the Plugin</a>
+    </div>
+    <div class="col-4">
+      <a class="btn btn-mygreen" target="_blank" href="https://discord.gg/nrdBkV6XBg">Join the Discord</a>
+    </div>
+  </div>
+</div>
+</figure>
+</div>
+
+<div class="brake-2">
+</div>
+
+<div class="container">
+  <h2>Current Rooms: </h2><h4>({{ nb_lobbies }} running room(s) / {{ nb_players }} active player(s))</h4>
+  
+  <div class="brake-2"></div>
+    
+  <div class="row row-cols-1 row-cols-md-3 g-4">
+   {% for item in rooms %}
+    <div class="col pb-3">
+      <div class="card h-100" style="width: 18rem;">
+        <div class="card-header">
+          {{item.title}}
+        </div>
+        <ul class="list-group list-group-flush">
+          {% for login in item.logins %}
+          <li class="list-group-item">{{login}}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+   {% endfor %}
+  </div>
+
+</div>
+
+<div class="brake-2"></div>
+
+<div class="container">
+  <h4>Total party editor played: {{ global_party_count }}<br/>
+  Total unique players: {{ global_player_count }}</h4>
+  
+  <div class="brake-2"></div>
+</div>
+    
+
+{% endblock %}

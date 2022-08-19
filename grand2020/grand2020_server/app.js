@@ -27,9 +27,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 
 let indexRouter = require('./routes/index.js')(eventDispatcher);
-let usersRouter = require('./routes/users.js')(eventDispatcher);
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -46,5 +44,6 @@ app.use(function (err, req, res, next) {
     res.status(err.status || 500);
     res.render('error');
 });
+
 
 module.exports = app;

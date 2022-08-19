@@ -5,14 +5,15 @@
  */
 
 var app = require('../app');
-var debug = require('debug')('grand2-server:server');
+var debug = require('debug')('grand2020-server:server');
 var http = require('http');
+
 
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '8000');
+var port = normalizePort(process.env.PORT || '8080');
 app.set('port', port);
 
 /**
@@ -88,3 +89,5 @@ function onListening() {
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+
+

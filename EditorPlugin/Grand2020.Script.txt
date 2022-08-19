@@ -1,0 +1,1826 @@
+#RequireContext CMapEditorPlugin
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*               Grand2020 by            */
+/*                 jovenium              */
+/*  based on Grand2 by LeGask and Reaby  */
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+#Include "TextLib"  as TextLib
+#Include "MathLib"  as MathLib
+#Include "TimeLib"  as TiL
+#Include "MapUnits" as MapUnits
+
+//#Setting S_HOSTNAME "http://localhost:8080"
+#Setting S_HOSTNAME "https://grand2020.jovenium.net"
+
+
+#Struct JsonBlock {
+	Text		Modif;
+	Int3 		Coord;
+	Text 		ModelName;
+	Integer Direction;
+	Text		login;
+	Integer	role;
+	Integer Color;
+	Integer Timestamp;
+	Boolean ForcePlace;
+	Boolean GhostMode;
+}
+
+#Struct JsonBlockList {
+	JsonBlock[] JsonBlocks;
+	Text token;
+}
+
+#Struct SClassicBlock {
+	Int3 Coord;
+	CMapEditorPlugin::CardinalDirections Dir;
+	Text Name;
+	Text Url;
+}
+
+#Struct SGhostBlock {
+	Int3 Coord;
+	CMapEditorPlugin::CardinalDirections Dir;
+	Text Name;
+}
+
+
+#Const	Version	"v0.1.0"
+#Const	ScriptName	"Grand2020.Script.txt"
+
+#Const  C_AllowedPlaceMode [
+	CMapEditorPlugin::PlaceMode::Block,
+	CMapEditorPlugin::PlaceMode::Unknown,
+	CMapEditorPlugin::PlaceMode::Skin,
+	CMapEditorPlugin::PlaceMode::Test,
+	CMapEditorPlugin::PlaceMode::Plugin
+]
+
+declare Text HOST;
+
+declare Int3 SelectionStartCoord;
+declare Int3 SelectionEndCoord;
+declare Integer G_TimeLastModif;
+declare JsonBlockList G_ListModif;
+declare Boolean ListenerRequestUp;
+declare Integer G_TimeListenerClosed;
+declare Text G_Token;
+declare Text G_LobbyId;
+declare Integer G_IsAdmin;
+
+//layers
+declare CUILayer UIModalStartOrQuit;
+declare CUILayer UIMainModal;
+declare CUILayer UIServerSettings;
+declare CUILayer UIParameter;//icon + parameter modal
+declare CUILayer UIChat;//icon + t input + chat modal
+declare CUILayer UIDebugView;//debug modal
+declare CUILayer UIChatPopup;//messagePopup
+declare CUILayer UIUpdateModal;
+
+
+
+Void HttpGet(Text _address) {
+		Http.CreateGet(_address, False);
+}
+
+CHttpRequest HttpPost(Text _address, Text[Text] _params) {
+	declare content = "";
+	
+	foreach (Key => Param in _params) {
+		content = """{"data" : {{{Param}}} }""";
+	}
+	
+	declare len = TextLib::Length(content)-1;
+	declare req = Http.CreatePost(_address, content,"Content-Type: application/json");
+	return req;
+}
+
+
+Text getUpdateModalManialink() {
+	return """	
+	<frame posn="3 10 10" id="Frame_Update" hidden="0" scale="0.8">
+		<label pos="0 47" size="203 18" text="Grand 2020 - Update" textfont="RajdhaniMono" textsize="8" halign="center" valign="center" id="welcome_content"/>
+		<quad pos="-3 46"  size="157 14" bgcolor="FFFA" style="Bgs1" substyle="BgTitle" halign="center" valign="center" /><!--style="Bgs1" substyle="BgWindow4" colorize="F00"-->
+		
+		<label posn="-55 34" sizen="104 16" text="Update:"  textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" translate="0" textsize="5" halign="right" valign="center"/>
+		<quad pos="-79.5 29"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>
+		
+		<frame pos="1 -2">	
+			<!--download section-->
+			<frame pos = "0 6">	
+				<label posn="52 11" sizen="20 5" text="Download Update" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="Btn_DownloadUpdate"/>
+				<label pos="-76 18" z-index="0" size="106 17" textsize="3" text="An update is available:"  autonewline="1" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx"/>
+				<label pos="-76 12" z-index="0" size="106 17" textsize="1.7" text="Please download the latest version of the plugin before building. You are currently on the {{{Version}}}. The latest version is the "  autonewline="1" textcolor="C1C1C1FF" id="Label_VersionDetail"/>
+				<quad pos="-4 11"  size="149 17" bgcolor="000" halign="center" valign="center" opacity="0.2" colorize="000"/>
+			</frame>
+		
+		</frame>
+		
+		<!--footer buttons-->
+		<label posn="-61 -3" sizen="12 1" text="Exit Plugin" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="Btn_ExitPlugin"/>
+				
+		<quad class="" size="157.5 60" pos="-3 20" style="ManiaplanetSystem" substyle="BgFloat" halign="center" valign="center"/>
+		
+	</frame>
+
+<script><!--
+main() {
+	declare CMlLabel Btn_DownloadUpdate <=> (Page.GetFirstChild("Btn_DownloadUpdate") as CMlLabel);
+	declare CMlLabel Label_VersionDetail <=> (Page.GetFirstChild("Label_VersionDetail") as CMlLabel);
+
+	declare Text Host = "";
+
+	while (True) {
+		yield;
+		foreach (Event in PendingEvents) {
+			if (Event.Type == CMlScriptEvent::Type::MouseClick){
+				if(Event.ControlId == "Btn_DownloadUpdate"){
+					OpenLink(Host^"/download",CMlScript::LinkType::ExternalBrowser);
+				}else if(Event.ControlId == "Btn_ExitPlugin"){
+					SendCustomEvent("exitPlugin",[]);
+				}
+			}else if(Event.Type == CMlScriptEvent::Type::PluginCustomEvent){
+				if(Event.CustomEventType == "showUpdate"){
+					Host = Event.CustomEventData[0];
+					Label_VersionDetail.Value ^= Event.CustomEventData[1] ^ ".";
+				}
+			}
+		}
+	}
+}
+--></script>	
+	
+	""";
+}
+
+
+
+Text getMainModalManialink() {
+	return """
+<stylesheet>
+  <style class="button" sizen="20 5" valign="center" halign="center" style="CardButtonMedium"/>
+  <style class="title" halign="center"  valign="center" textfont="RajdhaniMono" translate="0" textsize="8" />
+  <style class="text"  textsize="4" textfont="BiryaniDemiBold" autonewline="1" textcolor="CCCCCCFF" halign="left" valign="top" />
+  <style class="entry" valign="center2" halign="left" id="host" focusareacolor1="0002" focusareacolor2="0003" selecttext="1" />
+  <style class="background" bgcolor="FFFFFFFF" style="Bgs1" substyle="BgTitleGlow" halign="center" valign="center" />
+	<style class="background2" style="Bgs1" substyle="BgCardList" halign="center" valign="center" opacity="0.75"/>
+</stylesheet>
+
+<frame posn="0 0 5" scale="0.8">
+
+	<frame posn="0 0 10">
+	
+		<frame posn="0 0 10" id="Home" hidden="0">
+			<label pos="3 77" size="203 15" text="Welcome to Grand 2020! " textfont="RajdhaniMono" textsize="10" halign="center" valign="center" id="welcome_content"/>
+			<quad pos="3 76"  size="210 18" bgcolor="FFFA" style="Bgs1" substyle="BgTitle" halign="center" valign="center" />
+			
+			<frame pos="1 6.5">
+				<label posn="-97 52" sizen="75 17" text="What is Grand 2020? "  valign="center" textfont="RajdhaniMono" translate="0" textsize="5"/>
+				<quad pos="-97 47"  size="10 1" bgcolor="FFFA"  style="Bgs1" substyle="BgWindow4"/>
+				<label pos="-97 44"  size="126 17" text="Grand 2020 is a multiplayer map editor for Trackmania, created by Jovenium and based on the initial project by LeGmask and Reaby." textsize="3.5" autonewline="1" textcolor="C1C1C1FF" halign="left"/>
+				<quad pos="-100 57"  size="129 31" bgcolor="000" opacity="0.2"/>
+			</frame>
+			
+			<frame hidden="1">
+			<label posn="48.9 52" sizen="31 17" text="News: " halign="center"  valign="center" textfont="RajdhaniMono" translate="0" textsize="8"/>
+			<quad pos="35 46"  size="27 2" bgcolor="FFFA" style="Bgs1" substyle="ProgressBarSmall"/>
+			<label pos="36 43"  size="68 56" text="Beta 1.0 officially released" textsize="5" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" autonewline="1" textcolor="CCCCCCFF" halign="left" id="news_content"/>
+			</frame>			
+			
+			<frame pos="36 6">
+			<label posn="0 52" sizen="53 17" text="Need help?" halign="left"  valign="center" textfont="RajdhaniMono" translate="0" textsize="5"/>
+			<quad pos="0 47"  size="10 1" bgcolor="FFFA"  style="Bgs1" substyle="BgWindow4"/>
+			<label pos="0 44"  size="68 12" text="Join the Playground community!" textsize="3.5" autonewline="1" textcolor="C1C1C1FF" halign="left" id="version_content"/>	
+			<label posn="50.5 31" sizen="41 5" text="Discord" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="discord_btn" url="https://discord.gg/nrdBkV6XBg"/>
+			<quad pos="-3.2 57.3"  size="72.8 31" bgcolor="000" opacity="0.2"/>
+			</frame>
+			
+			
+			<quad id="QuadServerSetting" pos="96 27.5" size="8 8" style="UICommon64_1" substyle="Parameters_light" tooltip="Server settings" scriptevents="1"/>
+			<label posn="3 24" sizen="161 17" text="Start a new build or join a room" halign="center"  valign="center" textfont="RajdhaniMono" translate="0" textsize="5"/>
+			<quad pos="3 18"  size="10 1" bgcolor="FFFA"  style="Bgs1" substyle="BgWindow4" halign="center"/>
+			
+			<frame id="Frame_PartyCodeJoin" pos="70 5" hidden="1">
+				<label pos="-97 -8"  size="96 26" text="Enter Party code : " textsize="5" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" autonewline="1" halign="left"/>
+				<quad pos="-97 -15.47"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>	
+				<entry posn="-59.5 -22" sizen="50 6" valign="center" halign="center" id="Entry_PartyCode" scriptevents="1" default="" textformat="Password" selecttext="1"/>
+				<quad id="Quad_PCJoinShow" colorize="FFF" image="file://Media/Manialinks/Nadeo/TMNext/Menus/Icons/128x128/icons_128_HUD_Cam_unfollow_inc.dds" scriptevents="1" pos="-30 -22" z-index="0" size="6 6" bgcolor="FFFA" valign="center" halign="center" tooltip="Show/Hide Party Code"/>
+			</frame>		
+
+			<frame id="Frame_PartyCodeCreate" pos="70 5" hidden="1">
+				<label pos="-97 -8"  size="96 26" text="Your Party code : " textsize="5" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" autonewline="1" halign="left" id="version_content"/>
+				<quad pos="-97 -15.47"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>
+				<frame pos="-24 -3">	
+					<label posn="-35.5 -19" sizen="50 6" valign="center" halign="center" id="Label_PartyCodeGenerate" scriptevents="1" text="..." textformat="Basic"/>
+					<quad id="Quad_PCCreateShow" colorize="FFF" image="file://Media/Manialinks/Nadeo/TMNext/Menus/Icons/128x128/icons_128_HUD_Cam_unfollow_inc.dds" scriptevents="1" pos="-6 -19" z-index="0" size="6 6" bgcolor="FFFA" valign="center" halign="center" tooltip="Show/Hide Party Code"/>
+					<quad id="Quad_PCCreateCopy" style="UICommon64_1" substyle="Copy_light" scriptevents="1" pos="1 -19" z-index="0" size="6 6" bgcolor="FFFA" valign="center" halign="center" tooltip="Copy Party Code"/>
+					<quad id="Quad_PCCreateNew" style="UICommon64_1" substyle="Reload_light" scriptevents="1" pos="8 -19" z-index="0" size="6 6" bgcolor="FFFA" valign="center" halign="center" tooltip="Generate New Party Code"/>
+				</frame>
+			</frame>
+			
+			<frame id="Frame_PartyCodeExitOrLogin" pos="38.5 -2" hidden="1">
+				<label posn="-15.9 -45.5" sizen="20 5" text="Join" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="home_btnlogin"/>
+				<label posn="-54.9 -45.5" sizen="20 5" text="Return" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="home_btnreturn"/>
+				<!--<label posn="-54.9 -45.5" sizen="20 5" text="Exit" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="home_btnexit"/>-->
+			</frame>
+			
+			<label posn="-79 -47.5" sizen="20 5" text="Exit Plugin" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="home_btnexit"/>
+			
+			
+			<frame id="Frame_CreateOrJoin" pos="-21 -16">
+				<frame pos="0 0">
+					<quad id="Btn_CreateParty" pos="0 0" z-index="0" size="40 45" bgcolor="FFFA" valign="center" halign="center" scriptevents="1" style="Bgs1InRace" substyle="BgCard" colorize="CCC"/>
+					<label pos="0 0" z-index="1" size="20 5" text="Create" halign="center" valign="center" textprefix="$t" textfont="RajdhaniMono"/>
+				</frame>
+				<frame pos="48 0">
+					<quad id="Btn_JoinParty" pos="0 0" z-index="0" size="40 45" bgcolor="FFFA" valign="center" halign="center" scriptevents="1" style="Bgs1InRace" substyle="BgCard" colorize="CCC"/>
+					<label pos="0 0" z-index="1" size="20 5" text="Join" halign="center" valign="center" textprefix="$t" textfont="RajdhaniMono"/>
+				</frame>
+			</frame>
+			
+			
+			<quad pos="-99 29"  size="204.5 82" bgcolor="000" opacity="0.2"/>
+	
+			<quad posn="3 13" sizen="210.5 140" style="ManiaplanetSystem" substyle="BgFloat" halign="center" valign="center" scriptevents="1"/>
+		</frame>
+		<quad sizen="320 180" bgcolor="000A" halign="center" valign="center" id="home_bg" opacity="0" />
+	</frame>
+</frame>
+<script><!--
+
+#Include "MathLib" as ML
+#Include "TextLib" as TL
+#Include "AnimLib" as AL
+
+#Const C_OpenEyeImageUrl "file://Media/Manialinks/Nadeo/TMNext/Menus/Icons/128x128/icons_128_HUD_Cam_follow_inc.dds"
+#Const C_CloseEyeImageUrl "file://Media/Manialinks/Nadeo/TMNext/Menus/Icons/128x128/icons_128_HUD_Cam_unfollow_inc.dds"
+
+Text BooleanToText(Boolean _Bool){
+	if(_Bool){
+		return "1";
+	}
+	return "0";
+}
+
+Text GenerateRandomPartyCode(){
+	declare Text Result = "";
+	declare Text Charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+	for(i,0,5){
+		Result^=TL::SubText(Charset, ML::Rand(0,TL::Length(Charset) - 1), 1);
+	}
+	return Result;
+	//return "session" ^ TL::ToText(Now);
+}
+
+Text GetHidenIdLobby(Text _IdLobby){
+	declare Text Result = "";
+	for(i, 1, TL::Length(_IdLobby)){
+		Result ^= "*";
+	}
+	return Result;
+}
+
+main() {
+	declare Integer DialogVisibleTime = Now;
+
+	declare Boolean IsCreating = False;
+	declare Text IdLobby = "";
+	declare Boolean IsIdLobbyVisible = False;
+
+	declare CMlFrame Dialog <=> (Page.GetFirstChild("Home") as CMlFrame);
+	declare CMlQuad Background <=> (Page.GetFirstChild("home_bg") as CMlQuad);
+	declare CMlLabel Welcome <=> (Page.GetFirstChild("welcome_content") as CMlLabel);
+	declare CMlLabel Btn <=> (Page.GetFirstChild("home_btnexit") as CMlLabel);
+
+	declare CMlFrame Frame_PartyCodeJoin <=> (Page.GetFirstChild("Frame_PartyCodeJoin") as CMlFrame);
+	declare CMlEntry Entry_PartyCode <=> (Page.GetFirstChild("Entry_PartyCode") as CMlEntry);
+	declare CMlQuad Quad_PCJoinShow <=> (Page.GetFirstChild("Quad_PCJoinShow") as CMlQuad);
+	
+	declare CMlFrame Frame_PartyCodeCreate <=> (Page.GetFirstChild("Frame_PartyCodeCreate") as CMlFrame);
+	declare CMlLabel Label_PartyCodeGenerate <=> (Page.GetFirstChild("Label_PartyCodeGenerate") as CMlLabel);
+	declare CMlQuad Quad_PCCreateShow <=> (Page.GetFirstChild("Quad_PCCreateShow") as CMlQuad);
+	
+	declare CMlFrame Frame_PartyCodeExitOrLogin <=> (Page.GetFirstChild("Frame_PartyCodeExitOrLogin") as CMlFrame);
+	declare CMlFrame Frame_CreateOrJoin <=> (Page.GetFirstChild("Frame_CreateOrJoin") as CMlFrame);
+	
+	declare CMlLabel home_btnlogin <=> (Page.GetFirstChild("home_btnlogin") as CMlLabel);
+	
+	Welcome.SetText("Welcome to Grand 2020, "^LocalUser.Name);
+
+	while (True) {
+		yield;
+		Dialog.Show();
+		Background.Show();
+		AnimMgr.Add(Dialog,"<frame scale=\"1\" />", 200, CAnimManager::EAnimManagerEasing::SineInOut);
+		AnimMgr.Add(Background,"<quad opacity=\"1\" />",200, CAnimManager::EAnimManagerEasing::SineInOut);
+		foreach (Event in PendingEvents) {
+			if(Event.Type == CMlScriptEvent::Type::MouseClick){
+//--------------Btn Create or Join Party
+				if(Event.ControlId == "Btn_CreateParty"){
+					home_btnlogin.Value = "Create";
+					IsCreating = True;
+					Frame_CreateOrJoin.Hide();
+					Frame_PartyCodeCreate.Show();
+					Frame_PartyCodeExitOrLogin.Show();
+					IdLobby = GenerateRandomPartyCode();
+					if(IsIdLobbyVisible){
+						Label_PartyCodeGenerate.Value = IdLobby;
+					}else{
+						Label_PartyCodeGenerate.Value = GetHidenIdLobby(IdLobby);
+					} 
+					Audio.PlaySoundEvent(CAudioManager::ELibSound::ShowMenu, 0, 1.);
+				}else if(Event.ControlId == "Btn_JoinParty"){
+					home_btnlogin.Value = "Join";
+					Label_PartyCodeGenerate.Value = "";
+					IsCreating = False;
+					Frame_CreateOrJoin.Hide();
+					Frame_PartyCodeJoin.Show();
+					Frame_PartyCodeExitOrLogin.Show();
+					Audio.PlaySoundEvent(CAudioManager::ELibSound::ShowMenu, 0, 1.);
+				}	
+//--------------Btn Show/Hide, Copy or Regenerate Party Code
+				if(Event.ControlId == "Quad_PCCreateNew"){
+					IdLobby = GenerateRandomPartyCode();
+					if(IsIdLobbyVisible){
+						Label_PartyCodeGenerate.Value = IdLobby;
+					}else{
+						Label_PartyCodeGenerate.Value = GetHidenIdLobby(IdLobby);
+					}
+					Audio.PlaySoundEvent(CAudioManager::ELibSound::Alert, 0, 1.);
+				}else if(Event.ControlId == "Quad_PCCreateCopy"){
+					System.ClipboardSet(IdLobby);
+					Audio.PlaySoundEvent(CAudioManager::ELibSound::ShowDialog, 0, 1.);
+				}else if(Event.ControlId == "Quad_PCCreateShow"){
+					IsIdLobbyVisible = !IsIdLobbyVisible;
+					if(IsIdLobbyVisible){
+						Label_PartyCodeGenerate.Value = IdLobby;
+						Quad_PCCreateShow.ImageUrl = C_OpenEyeImageUrl;
+					}else{
+						Label_PartyCodeGenerate.Value = GetHidenIdLobby(IdLobby);
+						Quad_PCCreateShow.ImageUrl = C_CloseEyeImageUrl;
+					}
+				}else if(Event.ControlId == "Quad_PCJoinShow"){
+					if(Entry_PartyCode.TextFormat == CMlEntry::ETextFormat::Password){
+						Entry_PartyCode.TextFormat = CMlEntry::ETextFormat::Basic;
+						Quad_PCJoinShow.ImageUrl = C_OpenEyeImageUrl;
+					}else{
+						Entry_PartyCode.TextFormat = CMlEntry::ETextFormat::Password;
+						Quad_PCJoinShow.ImageUrl = C_CloseEyeImageUrl;
+					}
+				}
+//--------------Btn Exit Plugin				
+				if (Event.ControlId == "home_btnexit") {
+					SendCustomEvent("exitPlugin",[]);
+				}
+//--------------Btn Return Plugin				
+				if (Event.ControlId == "home_btnreturn") {
+					Frame_PartyCodeCreate.Hide();
+					Frame_PartyCodeJoin.Hide();
+					Frame_PartyCodeExitOrLogin.Hide();
+					Frame_CreateOrJoin.Show();
+				}
+//--------------Btn Login		
+				if (Event.ControlId == "home_btnlogin") {
+					if(!IsCreating){
+						IdLobby = Entry_PartyCode.Value;
+					}
+					SendCustomEvent("createOrJoinLobby", [IdLobby,BooleanToText(IsCreating)]);
+				}
+//--------------Btn Open Server Settings					
+				if(Event.ControlId =="QuadServerSetting"){
+					SendCustomEvent("openServerSettings", []);
+				}
+			}
+		}
+	}
+}
+--></script>
+	""";
+}
+
+Text getChatManialink() {
+	return """
+	<!--chat icon open/close-->
+	<stylesheet>
+  <style class="button" sizen="20 5" valign="center" halign="center" style="CardButtonMedium"/>
+  <style class="background" bgcolor="FFFFFFFF" style="Bgs1" substyle="BgTitleGlow" halign="center" valign="center" />
+	<style class="background2" style="Bgs1" substyle="BgCardList" halign="center" valign="center" opacity="0.75"/>
+</stylesheet>
+	
+	<frame>
+		<quad pos="138 82" z-index="0" size="11 11" bgcolor="FFFA" style="Icons128x32_1" substyle="Windowed" scriptevents="1" id="Btn_IconChat"/>
+	</frame>
+	<!--chat window-->
+	<frame posn="4 0 8" id="chat" hidden="1">
+			
+		<frame posn="77 61 2" id="chatlistcontainer">
+			<label posn="-161 19" sizen="168 110" autonewline="1" textsize="2,5" id="chatlist" textfont="Gotham/Gotham-Book" />
+			<quad size="170 112" pos="-162 19" style="Bgs1" substyle="BgCardList" opacity="0.8"/>	
+		</frame>
+		
+		<entry pos="-85 -38" size="132.5 6.5" default="" valign="center" focusareacolor2="7B7B7BFF" focusareacolor1="727272FF" scriptevents="1" style="TextValueSmall" id="message"/>
+		<label class="button" posn="67.5 -38" text="Send" scriptevents="1" id="Send" size="26 7"/>
+	
+		<quad class="background" size="180 140" pos="0 15" hidden="1"/>
+		<quad class="background" size="177 129" pos="0 19.5" style="ManiaplanetSystem" substyle="BgFloat"/>
+		<quad class="background2" size="177 129" pos="0 19.5" hidden="1"/>
+		
+	
+	</frame>
+	
+
+<script><!--
+declare Integer	LastChatListChange;
+declare Boolean ChatState;
+
+Integer UpdateChatList(Integer _CurrentChatLine, Text _NewLine) {
+	declare CMlLabel ChatList <=> (Page.GetFirstChild("chatlist") as CMlLabel);
+	declare Integer OldLineCount = ChatList.ValueLineCount;
+	
+	declare Text ContentChatList = ChatList.Value ^ _NewLine;
+
+	if (ContentChatList != ChatList.Value) {
+		ChatList.SetText(ContentChatList);
+		yield;
+		declare Integer NewLinesCount = ChatList.ValueLineCount - OldLineCount;
+
+		if (NewLinesCount > 0 && ChatList.ValueLineCount > 18) {
+			ChatList.RelativePosition[1] = (ChatList.ValueLineCount - 18) * 2.;
+		}
+
+		LastChatListChange = Now;
+		return ChatList.ValueLineCount - 18;
+	}
+	return _CurrentChatLine;
+}
+
+main() {
+	declare CMlFrame ChatModal <=> (Page.GetFirstChild("chat") as CMlFrame);
+	declare CMlFrame	FrameChatListContainer	<=>	(Page.GetFirstChild("chatlistcontainer") as CMlFrame);
+	declare CMlLabel	LabelChatList			<=>	(Page.GetFirstChild("chatlist") as CMlLabel);
+	
+	declare Text NewLine = "";
+ 	declare Integer CurrentChatLine = 0;
+	
+	FrameChatListContainer.ClipWindowActive = True;
+	FrameChatListContainer.ClipWindowRelativePosition = <LabelChatList.RelativePosition[0] + LabelChatList.Size[0] / 2 - 1, LabelChatList.RelativePosition[1] - LabelChatList.Size[1] / 2 >;
+	FrameChatListContainer.ClipWindowSize = LabelChatList.Size;
+
+	while (True) {
+		yield;
+		foreach (Event in PendingEvents) {
+			
+			if (Event.Type == CMlScriptEvent::Type::PluginCustomEvent){
+				if(Event.CustomEventType == "addChatLine"){
+					NewLine ^= Event.CustomEventData[0];
+				}
+			}
+			
+			if (Event.Type == CMlScriptEvent::Type::MouseClick){
+				if(Event.ControlId == "Btn_IconChat"){
+					ChatModal.Visible = !ChatModal.Visible;
+				}
+			}
+			
+			if (Event.Type == CMlScriptEvent::Type::KeyPress) { //show chat when press T tchat
+				if ((Event.KeyName == "Z" && (IsKeyPressed(64) || IsKeyPressed(107))) || Event.KeyName == "T") {
+					ChatModal.Visible = !ChatModal.Visible;
+				}
+			}
+				
+			if((Event.Type == CMlScriptEvent::Type::EntrySubmit && Event.ControlId == "message") || 
+				 (Event.Type == CMlScriptEvent::Type::MouseClick && Event.ControlId == "Send")){
+					declare ChatMessage <=> (Page.GetFirstChild("message") as CMlEntry);
+					SendCustomEvent("sendChat", [ChatMessage.Value]);
+					ChatMessage.Value = "";
+			}
+		}
+		CurrentChatLine = UpdateChatList(CurrentChatLine, NewLine);
+		NewLine = "";
+	}
+}
+--></script>	
+	
+	""";
+}
+
+Text getDebugViewManialink() {
+	return """
+	<!--Debug Event View-->
+	<frame posn="4 0 8" id="events" hidden="1">
+		<label posn="115 63" sizen="80 6" text="Event view" valign="center2" halign="center" style="TextTitle3"/>
+		<quad pos="75 66" z-index="0" size="80 52.6" bgcolor="FFFA" style="Bgs1" substyle="BgColorContour"/>
+		<quad posn="115 40.1" sizen="80 51.2" bgcolor="FFFA" style="Bgs1" substyle="BgCardList" valign="center" halign="center"/>
+		
+		<frame posn="77 61 2" id="eventlistcontainer">
+			<label posn="0 0" sizen="68 45" autonewline="1" textsize="0.4" id="eventlist"/>	
+		</frame>
+		<quad posn="111 38.2" sizen="68 45" bgcolor="FFFA" style="EnergyBar" substyle="BgText" valign="center" halign="center" opacity="0.25" id=eventlistbg/>
+		<quad posn="145 55.2" sizen="10 10" bgcolor="FFFA" style="UIConstruction_Buttons" substyle="Up" scriptevents="1" id="eventup"/>
+		<quad posn="145 30.5" sizen="10 10" bgcolor="FFFA" style="UIConstruction_Buttons" substyle="Down" scriptevents="1" id="eventdown"/>
+	</frame>
+	
+<script><!--
+declare Integer	LastEventListChange;
+declare Boolean Setting_Debug;
+
+Integer UpdateEventList(Integer _CurrentLine, Text _NewLine) {
+	
+	declare CMlLabel EventList <=> (Page.GetFirstChild("eventlist") as CMlLabel);
+	declare CMlQuad EventListBg <=> (Page.GetFirstChild("eventlistbg") as CMlQuad);
+	declare Integer OldLineCount = EventList.ValueLineCount;
+	
+	declare Text ContentEventList = EventList.Value ^ _NewLine;
+	
+	if (ContentEventList != EventList.Value) {
+		EventList.SetText(ContentEventList);
+		yield;
+		declare Integer NewLinesCount = EventList.ValueLineCount - OldLineCount;
+		
+		if (NewLinesCount > 0 && EventList.ValueLineCount > 17) {
+			EventList.RelativePosition[1] = (EventList.ValueLineCount - 17) * 2.;
+		}
+		
+		LastEventListChange = Now;
+		EventListBg.Opacity = 0.5;
+		return EventList.ValueLineCount - 18;
+	}
+	
+	if (Now - LastEventListChange > 200)
+		EventListBg.Opacity = 0.25;
+	return _CurrentLine;
+}
+
+main() {
+	declare CMlFrame FrameEventListContainer <=> (Page.GetFirstChild("eventlistcontainer") as CMlFrame);
+	declare CMlLabel LabelEventList <=>	(Page.GetFirstChild("eventlist") as CMlLabel);
+	declare CMlFrame Events <=> (Page.GetFirstChild("events") as CMlFrame);
+	declare Integer CurrentLine = 0;
+	declare Text NewLine = "";
+	
+	FrameEventListContainer.ClipWindowActive = True;
+	FrameEventListContainer.ClipWindowRelativePosition = <LabelEventList.RelativePosition[0] + LabelEventList.Size[0] / 2 - 1, LabelEventList.RelativePosition[1] - LabelEventList.Size[1] / 2 >;
+	FrameEventListContainer.ClipWindowSize = LabelEventList.Size;
+
+	while (True) {
+		yield;
+		foreach (Event in PendingEvents) {
+			if (Event.Type == CMlScriptEvent::Type::PluginCustomEvent){
+				if(Event.CustomEventType == "openDebugView"){
+					Events.Show();
+				}else if(Event.CustomEventType == "closeDebugView"){
+					Events.Hide();
+				}else if(Event.CustomEventType == "newLine"){
+					NewLine ^= Event.CustomEventData[0];
+				}
+			}
+			
+			if (Event.Type == CMlScriptEvent::Type::MouseClick){
+				if(Event.ControlId == "eventup"){
+					if (CurrentLine > 0) {
+						LabelEventList.RelativePosition[1] -= 2 * 2;
+						CurrentLine -= 2;
+					}
+					
+				}else if(Event.ControlId == "eventdown"){
+					if (CurrentLine < LabelEventList.ValueLineCount - 1 - 17) {
+						LabelEventList.RelativePosition[1] += 2 * 2;
+						CurrentLine += 2;
+					}
+				}
+			}
+		}
+		CurrentLine = UpdateEventList(CurrentLine, NewLine);
+		NewLine = "";
+	}
+}
+--></script>	
+	""";
+}
+
+Text getParameterManialink() {
+	return """
+	<!--parameter icon + modal-->
+	<frame>
+		<quad pos="149 82" z-index="0" size="11 11" bgcolor="FFFA" style="Icons128x32_1" substyle="Settings" scriptevents="1" id="Btn_IconSettingWheel"/>
+	</frame>
+	<quad size="24 11" pos="138 82" z-index="-1" bgcolor="000" opacity="0.50"/>
+	
+	<frame posn="3 20 10" id="Settings" hidden="1" scale="0.8">
+		<label pos="0 47" size="203 18" text="Grand 2020 - Settings" textfont="RajdhaniMono" textsize="8" halign="center" valign="center" id="welcome_content"/>
+		<quad pos="-3 46"  size="157 14" bgcolor="FFFA" style="Bgs1" substyle="BgTitle" halign="center" valign="center" /><!--style="Bgs1" substyle="BgWindow4" colorize="F00"-->
+		
+		<label posn="-55 34" sizen="104 16" text="Settings:"  textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" translate="0" textsize="5" halign="right" valign="center"/>
+		<quad pos="-79.5 29"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>
+		
+		<frame pos="1 -2">
+		
+			<!--party code section-->
+			<frame>	
+				<label posn="52 11" sizen="20 5" text="Copy" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="Btn_CopyPartyCode"/>
+				<label pos="-76 16" z-index="0" size="106 17" textsize="3" text="Party Code:"  autonewline="1" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx"/>
+				<label pos="-76 10" z-index="0" size="106 17" textsize="1.7" text="Copy your party code to share it with your buddies."  autonewline="1" textcolor="C1C1C1FF"/>
+				<quad pos="-4 11"  size="149 17" bgcolor="000" halign="center" valign="center" opacity="0.2" colorize="000"/>
+			</frame>
+				
+			<!--debug section-->
+			<frame pos = "0 -21">	
+				<label posn="52 11" sizen="20 5" text="value" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="settings_debug"/>
+				<label pos="-76 18" z-index="0" size="106 17" textsize="3" text="Debug view:"  autonewline="1" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx"/>
+				<label pos="-76 12" z-index="0" size="106 17" textsize="1.7" text="Toggle the event view to show the latest events of the room, such as placed or removed blocks."  autonewline="1" textcolor="C1C1C1FF"/>
+				<quad pos="-4 11"  size="149 17" bgcolor="000" halign="center" valign="center" opacity="0.2" colorize="000"/>
+			</frame>
+		
+		</frame>
+		
+		<!--footer buttons-->
+		<label posn="-61 -48" sizen="12 1" text="Exit Plugin" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="Btn_ExitPlugin"/>
+		<label posn="55 -48" sizen="12 1" text="Close" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="settings_close"/>
+		
+		
+		<!--<quad pos="-3 -11.5"  size="154 83" bgcolor="FFFFFFFF" style="Bgs1" substyle="BgTitleGlow" halign="center" valign="center"/>-->
+				
+		<quad class="" size="157.5 107" pos="-3 -1" style="ManiaplanetSystem" substyle="BgFloat" halign="center" valign="center"/>
+		<quad posn="-3 0" sizen="158 109" style="Bgs1" substyle="BgCardList" halign="center" valign="center" opacity="0.75" hidden="1"/>
+		
+	</frame>
+
+<script><!--
+main() {
+	declare Boolean DebugViewIsVisible = False;
+
+	declare CMlFrame Dialog <=> (Page.GetFirstChild("Settings") as CMlFrame);
+	declare CMlLabel BtnDebug <=> (Page.GetFirstChild("settings_debug") as CMlLabel);
+
+	BtnDebug.SetText("Enable");
+
+	while (True) {
+		yield;
+		foreach (Event in PendingEvents) {
+			if (Event.Type == CMlScriptEvent::Type::MouseClick){
+				if(Event.ControlId == "Btn_IconSettingWheel"){
+					Dialog.Visible = !Dialog.Visible;
+					
+				}else if(Event.ControlId == "Btn_CopyPartyCode"){
+					SendCustomEvent("copyPartyCode",[]);
+				}else if(Event.ControlId == "Btn_ExitPlugin"){
+					SendCustomEvent("exitPlugin",[]);
+				}else if(Event.ControlId == "settings_close"){
+					Dialog.Hide();
+				}else if(Event.ControlId == "settings_debug"){
+					DebugViewIsVisible = !DebugViewIsVisible;
+					if (DebugViewIsVisible){
+						BtnDebug.SetText("Disable");
+						SendCustomEvent("openDebugView",[]);
+					}else{
+						BtnDebug.SetText("Enable");
+						SendCustomEvent("closeDebugView",[]);
+					}
+				}
+			}
+		}
+	}
+}
+--></script>	
+	
+	""";
+}
+
+
+Text getModalStartOrQuitManialink() {
+	return """
+	<!--modal No/Yes window-->
+	<frame posn="0 0 10">
+		<frame posn="0 0 1" id="booleandialog" hidden="0">
+			<quad posn="0 15.5 2" sizen="126.5 8" style="Bgs1InRace" substyle="BgGlow2" halign="center" valign="center"/>
+			<quad posn="0 -16 2" sizen="120 2" style="Bgs1InRace" substyle="BgMetalBar" halign="center" valign="center"/>
+	
+			<label posn="0 5 1" sizen="120 10" text="myLabel" autonewline="1" valign="center" halign="center" id="booleandialog_content"/>
+			<frame posn="-25 -5">
+				<label posn="0 0 1" sizen="20 5" text="No" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="booleandialog_btnno"/>
+				<label posn="50 0 1" sizen="20 5" text="Yes" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="booleandialog_btnyes"/>
+			</frame>
+	
+			<quad posn="0 0 0" sizen="120 30" style="Bgs1InRace" substyle="BgWindow2" halign="center" valign="center" opacity="0.75" scriptevents="1"/>
+		</frame>
+		<quad sizen="320 180" bgcolor="000A" halign="center" valign="center" id="booleandialog_bg" opacity="0"/>
+	</frame>
+	
+<script><!--
+	
+	#Include "MathLib" as ML
+	#Include "TextLib" as TL
+	#Include "AnimLib" as AL
+	
+	
+main() {
+	declare Integer DialogVisibleTime = Now;
+
+	declare Boolean Close = False;
+	declare Boolean Choice;
+
+	declare CMlFrame Dialog <=> (Page.GetFirstChild("booleandialog") as CMlFrame);
+	declare CMlQuad Background <=> (Page.GetFirstChild("booleandialog_bg") as CMlQuad);
+	declare CMlLabel Content <=> (Page.GetFirstChild("booleandialog_content") as CMlLabel);
+	declare CMlLabel BtnYes <=> (Page.GetFirstChild("booleandialog_btnyes") as CMlLabel);
+	declare CMlLabel BtnNo <=> (Page.GetFirstChild("booleandialog_btnno") as CMlLabel);
+
+	declare Message = "Launching this plugin will reset all you current work. Continue?";
+	Content.SetText(Message);
+
+	while (True) {
+		yield;
+
+		foreach (Event in PendingEvents) {
+			if (Event.Type == CMlScriptEvent::Type::MouseClick) {
+				switch (Event.Control) {
+					case BtnYes: {
+						SendCustomEvent("removeAllAndContinue",[]);
+						Background.Opacity = 0.;
+					}
+					case BtnNo: {
+						SendCustomEvent("exitPlugin",[]);
+						Background.Opacity = 0.;
+					}
+				}
+			}
+		}
+	}
+}
+	
+--></script>
+	""";
+}
+
+
+Text getChatPopupManialink() {
+	return """
+	<!--popup chat window-->
+	<stylesheet>
+  	<style class="background" bgcolor="FFFFFFFF" style="Bgs1" substyle="BgTitleGlow" halign="center" valign="center" />
+		<style class="background2" style="Bgs1" substyle="BgCardList" halign="center" valign="center" opacity="0.75"/>
+	</stylesheet>
+	
+	<!--<frame id="chat_popup" hidden="1">
+		
+		<label pos="128 -38" size="54.9 5" text="New message:" halign="center" valign="center" scriptevents="1" id="frompopup"/>
+		<quad pos="128 -41" z-index="0" size="54.9 5" bgcolor="FFFA" style="EnergyBar" substyle="HeaderGaugeRight" halign="center" valign="center"/>
+		<label pos="101 -43" size="54 14" text="This is a test message for the popup test view" class="text" id="messagepopup"/>
+		<quad class="background" size="57 24" pos="128 -47"/>
+		<quad class="background2" size="57 24" pos="128 -47"/>
+	
+	</frame>-->
+	<frame id="chat_popup" hidden="1">
+		
+		<label pos="128 -37.8" size="25 5" text="New message:" halign="center" valign="center" id="frompopup" textfont="RajdhaniMono"/>
+		<quad pos="128 -38.5" z-index="0" size="57 7" bgcolor="FFFA" style="Bgs1" substyle="BgTitle" halign="center" valign="center" /><!--BgWindow4 colorize="F00"  Bgs1 BgTitle-->
+		<quad pos="128 -41" z-index="0" size="54.9 3" bgcolor="FFFA" style="EnergyBar" substyle="HeaderGaugeRight" halign="center" valign="center" hidden="1"/>
+		<label pos="101 -43" size="54 14" text="This is a test message for the popup test view" class="text" id="messagepopup" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx"/>
+		<quad class="background" size="57.5 23" pos="128 -47" style="ManiaplanetSystem" substyle="BgFloat"/>
+		<quad class="background2" size="57 24" pos="128 -47" hidden="1"/>
+	
+	</frame>
+	
+	<script><!--
+	
+	#Include "MathLib" as ML
+	#Include "TextLib" as TL
+	#Include "AnimLib" as AL
+	
+	declare Integer TimeChatPopupOpen;
+	
+Void Chatpopup(Text _message) {
+	declare Integer DialogVisibleTime = Now;
+	declare Integer Closepopup = Now;
+	declare Boolean Close = False;
+
+	declare CMlFrame Chat_popup <=> (Page.GetFirstChild("chat_popup") as CMlFrame);
+	declare CMlLabel Content <=> (Page.GetFirstChild("messagepopup") as CMlLabel);
+
+	Content.SetText(_message);
+
+	TimeChatPopupOpen = Now;
+	Chat_popup.Show();
+}
+	
+	
+main(){
+		declare CMlFrame Chat_popup <=>	(Page.GetFirstChild("chat_popup") as CMlFrame);	
+		
+		declare Text Message = "";
+		declare Integer Delay = 3000;
+		
+		TimeChatPopupOpen = 0;
+		
+		while(True){
+			yield;
+			foreach(Event in PendingEvents){
+				if( Event.Type == CMlEvent::Type::PluginCustomEvent){
+					if(Event.CustomEventType == "addChatPopup"){
+						Message = Event.CustomEventData[0];
+						Delay = TL::ToInteger(Event.CustomEventData[1]);
+						if(Delay <= 0){
+							Delay = 3000;
+						}
+						Chatpopup(Message);
+					}
+				}
+			}
+			if(Chat_popup.Visible){
+				Chat_popup.RelativeScale = AL::EaseInOutSine(Now - TimeChatPopupOpen, 1.2, -0.2, 200);
+				if(TimeChatPopupOpen + Delay < Now){
+					Chat_popup.Hide();
+				}
+			}
+		}
+}
+--></script>
+	
+	
+	""";
+}
+
+Text getServerSettingsManialink(Text _HOST) {
+ return """
+<frame id ="FrameServerSettings" z-index="5" pos="26 25" scale="0.7">
+
+			<label posn="-95 4" sizen="48 17" text="Server Settings "  valign="center" textfont="RajdhaniMono" translate="0" textsize="7" halign="left"/>
+			<quad pos="-95 -2.47"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>
+			
+			<frame pos="4 2">
+			<label pos="-97 -8"  size="96 7" text="Server Adress: " textsize="5" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" autonewline="1" halign="left"/>	
+			<quad pos="-97 -15.47"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>
+			<entry posn="-86 -20" sizen="102 6" valign="center" halign="left" id="serveradresse" scriptevents="1" focusareacolor1="0002" focusareacolor2="0003" default="{{{_HOST}}}" textformat="Basic"/>
+			<label pos="-97 -25"  size="96 7" text="Server Password : " textsize="5" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" autonewline="1" halign="left"/>
+			<quad pos="-97 -32.47"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>	
+			<entry posn="-86 -37" sizen="102 6" valign="center" halign="left" id="serverpass" scriptevents="1" focusareacolor1="0002" focusareacolor2="0003" textformat="Password"/>
+			</frame>
+			<label posn="-54.9 -45.5" sizen="20 5" text="Cancel" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="server_btncancel"/>
+			<label posn="-15.9 -45.5" sizen="20 5" text="Save" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="server_btnsave"/>
+	
+			<quad posn="-35 -22" sizen="132 66"  halign="center" opacity="1" bgcolor="8F8F8FFF" valign="center" scriptevents="1"/>
+</frame>
+<script><!--
+#Include "TextLib" as TL
+
+main(){
+	declare CMlEntry serveradresse <=> (Page.GetFirstChild("serveradresse") as CMlEntry);
+	declare CMlEntry serverpass <=> (Page.GetFirstChild("serverpass") as CMlEntry);
+	
+	while(True){
+		yield;
+		foreach(Event in PendingEvents){
+		
+			if (Event.Type == CMlEvent::Type::MouseClick) {
+					switch (Event.ControlId) {
+						case "server_btncancel": { // close server popup
+							SendCustomEvent("closeServerSettings",[]);
+						}
+						case "server_btnsave": { // close server popup
+							if(serveradresse.Value != ""){
+								if(TL::SubText(serveradresse.Value, TL::Length(serveradresse.Value)-1, 1) == "/"){
+									serveradresse.Value = TL::SubText (serveradresse.Value, 0, TL::Length(serveradresse.Value)-1);
+								}
+								SendCustomEvent("saveServerSettings",[serveradresse.Value, serverpass.Value]);
+							}else{
+								log("UIServerSettings:main:server name entry is empty.");
+							}
+						}
+					}
+			}else if( Event.Type == CMlEvent::Type::PluginCustomEvent){
+				if(Event.CustomEventType == "reloadHostName"){
+					serveradresse.Value = Event.CustomEventData[0];
+					serverpass.Value = Event.CustomEventData[1];
+				}
+			}
+		}
+	}
+}
+--></script>
+""";
+}
+
+Text getUiManialink() {
+return """
+<!--Menu Icon Over (to hide unwanted tools/options)-->
+
+<frame id="FrameOverTools" z-index="100000000" hidden="1">
+	<frame id="FrameBlockOptions" hidden="1">
+		<quad style="UICommon64_1" substyle="BgFrame1" size="50.5 14" pos="-157 -62" 
+			tooltip="sorry no tools here" colorize="E7F2ED"
+			scriptevents="1"/>
+			
+		<quad id="QuadBlockMode" pos="-156 -63.5" z-index="1" size="11 11" style="UICommon64_1" substyle="BlockEditor_dark" scriptevents="1"  opacity="1" tooltip="BlockMode" colorize="FF0" hidden="0"/>
+		<quad id="QuadGhostMode" pos="-144.5 -63.5" z-index="1" size="11 11" style="UICommon64_1" substyle="GhostBlocks_dark" scriptevents="1"  opacity="1" tooltip="GhostMode" colorize="FF0" hidden="0"/>
+		<quad size="0.7 7" pos="-120 -65.5" bgcolor="AEAEAE" z-index="1" scriptevents="1"/>
+		<!--//original position for the AirMode button : "-118 -63.5"-->
+		<quad id="QuadAirMode" pos="-118 -63.5" z-index="1" size="11 11" style="UICommon64_1" substyle="AirMapping_dark" scriptevents="1"  opacity="1" tooltip="AirMode" colorize="FF0" hidden="0"/>
+	</frame>
+	
+	<frame id="ToolBarHide">
+	<!--Over Item and Macroblock-->
+	<quad style="UICommon64_1" substyle="BgFrameTilted1" size="23 10" pos="-94 -79.75"
+		tooltip="sorry no tools here" colorize="E7F2ED"
+		scriptevents="1"/>
+	</frame>
+	<!--Over Undo Redo Picker and Select-->
+	<quad style="UICommon64_1" substyle="BgFrameTilted1" size="40 10" pos="-42 -79.75" 
+		tooltip="sorry no tools here" colorize="B5D7C9"
+		scriptevents="1"/>
+	<!--Over BlockProperty OffZone and Plugin-->	
+	<quad style="UICommon64_1" substyle="BgFrameTilted1" size="20 10.19" pos="7 -79.60" 
+		tooltip="sorry no tools here" colorize="B5D7C9"
+		scriptevents="1"/>
+		
+</frame>	
+<script><!--
+
+#Include "MathLib" as ML
+#Include "TextLib" as TL
+
+main() {
+	declare Boolean Page_IsLogged for Page = False;
+	declare Boolean Page_AirModeVisibility for Page = False;
+	declare Boolean Page_EnableAirMode for Page = False;
+	declare Boolean Page_EnableGhostMode for Page = False;
+	declare Boolean Page_EditorAllowAirGhostMode for Page = False;
+	
+	declare CMlFrame FrameOverTools <=>	(Page.GetFirstChild("FrameOverTools") as CMlFrame);
+	declare CMlFrame	FrameBlockOptions	<=>	(Page.GetFirstChild("FrameBlockOptions") as CMlFrame);
+	declare CMlQuad		QuadBlockMode				<=>	(Page.GetFirstChild("QuadBlockMode")		as CMlQuad);
+	declare CMlQuad		QuadGhostMode				<=>	(Page.GetFirstChild("QuadGhostMode")		as CMlQuad);
+	declare CMlQuad		QuadAirMode				<=>	(Page.GetFirstChild("QuadAirMode")		as CMlQuad);
+	
+	while(!Page_IsLogged){
+		yield;
+	}
+	
+	QuadBlockMode.StyleSelected = True;
+	FrameOverTools.Show();
+
+	while (True) {
+		yield;
+
+		foreach (Event in PendingEvents) { 
+			if (Event.Type == CMlEvent::Type::MouseClick) {
+				switch (Event.Control) {
+					case QuadAirMode: {
+						if(Page_EnableGhostMode && !Page_EditorAllowAirGhostMode){
+							//send editor message
+							SendCustomEvent("addChatPopup", ["$F00Editor: AirMapping + GhostMode is not allowed\nfor the moment.","5000"]);
+						}else if(Page_EnableGhostMode && Page_EditorAllowAirGhostMode){
+							Page_EnableAirMode= !Page_EnableAirMode;
+							QuadAirMode.StyleSelected = Page_EnableAirMode;
+						}else if(!Page_EnableGhostMode){
+							Page_EnableAirMode= !Page_EnableAirMode;
+							QuadAirMode.StyleSelected = Page_EnableAirMode;
+						}
+					}
+					case QuadGhostMode: {
+						Page_EnableGhostMode= !Page_EnableGhostMode;
+						QuadGhostMode.StyleSelected = Page_EnableGhostMode;
+						QuadBlockMode.StyleSelected = !Page_EnableGhostMode;
+						if(Page_EnableGhostMode && !Page_EditorAllowAirGhostMode){
+							Page_EnableAirMode = False;
+							QuadAirMode.StyleSelected = Page_EnableAirMode;
+						}
+					}
+					case QuadBlockMode: {
+						Page_EnableGhostMode= False;
+						QuadGhostMode.StyleSelected = Page_EnableGhostMode;
+						QuadBlockMode.StyleSelected = !Page_EnableGhostMode;
+					}
+				}
+			}
+		}
+
+		FrameBlockOptions.Visible = Page_AirModeVisibility;
+	}
+}
+--></script>	
+""";
+}
+
+Text LineFeed() {
+	return """
+""";
+}
+
+Void AddEventLine(Text _Line) {
+	LayerCustomEvent(UIDebugView,"newLine",[_Line ^ LineFeed()]);
+}
+
+Void AddChatLine(Text _Line) {
+	LayerCustomEvent(UIChat,"addChatLine",[_Line ^ "$z\n"]);
+}
+
+Void AddChatPopup(Text _Message, Integer _Duration, Boolean _Cut){
+	declare Text Message = _Message;
+	AddChatLine(Message);
+	if ((TextLib::Length(Message)) >=70 && _Cut) {
+		Message = TextLib::SubString(Message, 0, 70)^"...";
+	}
+	LayerCustomEvent(UIChatPopup, "addChatPopup", [Message, TextLib::ToText(_Duration)]);
+	
+}
+
+Void AddChatPopup(Text _Message){
+	AddChatPopup(_Message, 3000, True);
+}
+
+Void AddModifToQueue(JsonBlock block) {
+	G_ListModif.JsonBlocks.add(block);
+	G_TimeLastModif = Now;
+	//log(G_TimeLastModif);
+}
+
+CHttpRequest SendCreateOrJoin(Text Message) {
+	declare Text[Text] json = ["data" => Message];
+	return HttpPost(HOST^"/"^G_LobbyId^"/join", json);
+}
+
+Void SendMessage(Text Message) {
+	declare Text[Text] json = ["data" => Message];
+	HttpPost(HOST^"/"^G_LobbyId^"/push?login="^LocalUser.Name, json);
+}
+
+Void LoopSendModif() {
+	if (G_TimeLastModif >= Now - 1000) return;
+	if (G_ListModif.JsonBlocks.count < 1) return;
+	log(Now);
+	declare Text Data = G_ListModif.tojson();
+	//log(Data);
+	SendMessage(Data);
+	G_ListModif.JsonBlocks.clear();
+}
+
+Text GetLatestVersion(){
+	declare Request = Http.CreateGet(HOST^"/version", False);
+	declare Text Result = "unknown"; 
+	wait(Request.IsCompleted);
+	if(Request.StatusCode >= 200 && Request.StatusCode < 300){
+		Result = Request.Result;
+	}
+	return Result;
+}
+
+Void CheckForUpdate(){
+	declare Text LatestVersion = "";
+	LatestVersion = GetLatestVersion();
+	if(LatestVersion == "unknown"){
+		AddChatPopup("$F00Editor : Something went wrong when\nchecking for update.", 5000, False);
+	}else if(LatestVersion != Version){
+		AddChatPopup("$F00Editor : An update of the plugin is\navailable. Please download it before playing.", 10000, False);
+		sleep(500);
+		LayerCustomEvent( UIUpdateModal,"showUpdate",[HOST,LatestVersion]);
+		UIUpdateModal.IsVisible = True;
+	}
+}
+
+
+Integer getBlockDirection(CMapEditorPlugin::CardinalDirections direction) {
+	switch (direction) {
+			case CMapEditorPlugin::CardinalDirections::North:  {return 0;}
+			case CMapEditorPlugin::CardinalDirections::East: {return 1;}
+			case CMapEditorPlugin::CardinalDirections::South:{ return 2;}
+			case CMapEditorPlugin::CardinalDirections::West:{ return 3;}
+	}
+	return 0;
+}
+
+CMapEditorPlugin::CardinalDirections convertBlockDirection(Integer direction) {
+	switch (direction) {
+			case 0: return CMapEditorPlugin::CardinalDirections::North;
+			case 1: return CMapEditorPlugin::CardinalDirections::East;
+			case 2: return CMapEditorPlugin::CardinalDirections::South;
+			case 3: return CMapEditorPlugin::CardinalDirections::West;
+	}
+	return CMapEditorPlugin::CardinalDirections::North;
+}
+
+Integer getBlockColor(CMapEditorPlugin::MapElemColor _Color){
+	switch (_Color) {
+			case CMapEditorPlugin::MapElemColor::Default:{return 0;}
+			case CMapEditorPlugin::MapElemColor::White:  {return 1;}
+			case CMapEditorPlugin::MapElemColor::Green:  {return 2;}
+			case CMapEditorPlugin::MapElemColor::Blue:   {return 3;}
+			case CMapEditorPlugin::MapElemColor::Red:    {return 4;}
+			case CMapEditorPlugin::MapElemColor::Black:  {return 5;}
+	}
+	return 0;
+}
+
+CMapEditorPlugin::MapElemColor convertBlockColor(Integer _Color){
+	switch (_Color) {
+			case 0:{return CMapEditorPlugin::MapElemColor::Default;}
+			case 1:{return CMapEditorPlugin::MapElemColor::White;}
+			case 2:{return CMapEditorPlugin::MapElemColor::Green;}
+			case 3:{return CMapEditorPlugin::MapElemColor::Blue;}
+			case 4:{return CMapEditorPlugin::MapElemColor::Red;}
+			case 5:{return CMapEditorPlugin::MapElemColor::Black;}
+	}
+	return CMapEditorPlugin::MapElemColor::Default;
+}
+
+Boolean IsAirGhostModeAllowed(){
+	//TODO : enable the airGhostMode when the macroblock set will be made and if the player have the set in his game.
+	return False;
+}
+
+Int3 GetOneOffsetInTheRightDirection(CBlock _block){
+	declare Dir = _block.Dir;
+	declare Int3 result;
+	declare Int3 OneOffset = _block.BlockUnits[0].AbsoluteOffset;
+	
+	if(Dir == CMapEditorPlugin::CardinalDirections::North){
+		result = MapUnits::GetRotatedOffsetPositive(OneOffset, ::CardinalDirections::North ,<0,0,0>);
+
+	}else if(Dir == CMapEditorPlugin::CardinalDirections::East){
+		result = MapUnits::GetRotatedOffsetPositive(OneOffset, ::CardinalDirections::East ,<0,0,OneOffset.Z+1>);
+		
+	}else if(Dir == CMapEditorPlugin::CardinalDirections::South){
+		result = MapUnits::GetRotatedOffsetPositive(OneOffset, ::CardinalDirections::South ,<OneOffset.X+1,0,OneOffset.Z+1>);
+	}else{
+		result = MapUnits::GetRotatedOffsetPositive(OneOffset, ::CardinalDirections::West ,<OneOffset.X+1,0,0>);
+	}
+	
+	result = _block.Coord + result;
+	return result;
+}
+
+Boolean DeleteOnePillar(Int3 _Coord){
+	declare Boolean Found = False;
+	declare CBlock BlockToDelete;
+	foreach(block in ClassicBlocks){
+		if(Found){
+			BlockToDelete = block;
+			break;
+		}else	if(block.Coord == _Coord){
+			log("DeleteOnePillar:found");
+			AutoSave();
+			Found = True;
+		}
+	}
+	
+	if(BlockToDelete != Null){
+		if(ClassicBlocks.exists(BlockToDelete)){
+				RemoveBlock(GetOneOffsetInTheRightDirection(BlockToDelete));
+				AutoSave();
+				return True;
+		}
+	}
+	return False;
+}
+
+//return a list of the current pillars
+SClassicBlock[] GetPillars(){
+	declare SClassicBlock[] Result;
+	foreach(block in ClassicBlocks){
+		if(TextLib::Find("Pillar",block.BlockModel.Name,False,True)){
+			Result.add(SClassicBlock{Coord =block.Coord , Dir = block.Dir, Name = block.BlockModel.Name});
+		}
+	}
+	return Result;
+}
+
+//return the number of pillars to delete
+Integer NeedToDelete(SClassicBlock[] Origin){
+	declare Integer Result = 0;
+	declare SClassicBlock[] Current;
+	declare Boolean Found = False;
+	declare Integer YieldTime = 100;
+	declare Integer i = 0;
+	Current = GetPillars();
+	foreach(block in Current){
+		Found = False;
+		foreach(originBlock in Origin){
+			if(originBlock.Coord == block.Coord && originBlock.Dir == block.Dir && originBlock.Name == block.Name){
+				Found = True;
+				i +=1;
+			}
+		}
+		if(!Found){
+			Result +=1;
+		}
+		if(i >= YieldTime){
+			yield;
+			i = 0;
+		}
+	}
+	return Result;
+}
+
+Void Simulation_AirMode(Integer _Delta,SClassicBlock[] _Pillars, Integer _NbBlocks, Int3 _Coord){
+	declare Boolean IsLastBlock = False;
+	declare Boolean OneBlockRemoved = True;
+	declare Integer Delta = _Delta;
+	declare Integer PillarToDelete = 0;
+
+	log("Simulation_AirMode:number block to delete:");
+	log(Delta);
+	
+	AutoSave();
+	if(Delta != ClassicBlocks.count - _NbBlocks){
+		log("Simulation_AirMode:weird :");
+		log(Delta);
+		log(ClassicBlocks.count - _NbBlocks);
+		return;
+	}
+	
+	if(Delta < 0){
+	
+	}else if(Delta == 0){
+		log(_Pillars);
+		PillarToDelete = NeedToDelete(_Pillars);
+		while(OneBlockRemoved && PillarToDelete > 0){
+			OneBlockRemoved = DeleteOnePillar(_Coord);
+			if(OneBlockRemoved){
+				PillarToDelete -= 1;
+			}
+		}
+	}else if(Delta == 1){
+		IsLastBlock=True;
+		log("Simulation_AirMode:not deletion to do.");
+	}else{
+		while(OneBlockRemoved && Delta >= 2){
+			log("Simulation_AirMode:oneblockremoved");
+			OneBlockRemoved = DeleteOnePillar(_Coord);
+			Delta = ClassicBlocks.count - _NbBlocks;
+			log("Simulation_AirMode:Delta");
+			log(Delta);
+		}
+	}
+}
+
+//return a list of the current GhostBlocks
+SGhostBlock[] GetStackGhostBlocks(){
+	declare SGhostBlock[] Result;
+	foreach(block in GhostBlocks){
+		Result.add(SGhostBlock{Coord =block.Coord , Dir = block.Dir, Name = block.BlockModel.Name});
+	}
+	return Result;
+}
+
+//return the number of pillars to delete
+SGhostBlock GetGhostBlockErased(SGhostBlock[] Origin){
+	declare SGhostBlock Result = SGhostBlock{Coord = <-1,-1,-1>};
+	declare SGhostBlock[] Current;
+	declare Boolean Found = False;
+	Current = GetStackGhostBlocks();
+	foreach(originBlock in Origin){
+		Found = False;
+		foreach(block in Current){
+			if(originBlock.Coord == block.Coord && originBlock.Dir == block.Dir && originBlock.Name == block.Name){
+				Found = True; 
+			}
+		}
+		if(!Found){
+			//if the origin block is not found in the current map, it has been removed
+			return originBlock;
+		}
+	}
+	return Result;
+}
+
+Void Simulation_GhostMode(CBlockModel _BlockModel, Int3 _Coord, CMapEditorPlugin::CardinalDirections _Dir, Boolean _Undo){
+	if(_Undo)	Undo();
+	PlaceGhostBlock(_BlockModel, _Coord, _Dir);
+	AutoSave();
+}
+
+Int3 GetRotatedAndTranslatedOffset(Int3 OneOffset, Int3 CursorCoord, ::CardinalDirections Dir, Integer X, Integer Z){
+	declare Int3 result;
+	if(Dir == CMapEditorPlugin::CardinalDirections::North){
+		result = MapUnits::GetRotatedOffsetPositive(OneOffset, ::CardinalDirections::North ,<0,0,0>);
+	}else if(Dir == CMapEditorPlugin::CardinalDirections::East){
+		//translate by z in x
+		result = MapUnits::GetRotatedOffset(OneOffset,::CardinalDirections::East); 
+		result = result + <Z,0,0>;
+	}else if(Dir == CMapEditorPlugin::CardinalDirections::South){
+		// tranlate by x and z
+		result = MapUnits::GetRotatedOffset(OneOffset,::CardinalDirections::South);
+		result = result + <X,0,Z>;
+	}else{
+		//translate by x in z
+		result = MapUnits::GetRotatedOffset(OneOffset,::CardinalDirections::West);
+		result = result + <0,0,X>;
+	}
+	result = CursorCoord + result;
+	return result;
+}
+
+
+/** Logic */
+Void OnListenerResponse(Text _response) {
+	declare JsonBlock block;
+	declare JsonBlockList BlockLists;
+	declare CMapEditorPlugin::MapElemColor TmpElemColor;
+	
+	declare Integer NbClassicBlocks = 0;
+	declare Integer DeltaNbClassicBlocks = 0;
+	declare SClassicBlock[] Pillars;
+	
+	declare Boolean OnGround;
+	declare Integer VariantIndex;
+	declare CBlockModelVariant Variant;
+	declare Int3 CalculatedOffset;
+	declare Integer BiggestX;
+	declare Integer BiggestZ;
+	
+	
+	BlockLists.fromjson(_response);
+
+	TmpElemColor = NextMapElemColor;
+	
+	foreach( block in BlockLists.JsonBlocks){
+		yield;
+		declare BlockModel = GetBlockModelFromName(block.ModelName);
+		if (block.Modif == "Place" || block.Modif == "PlaceAir"){
+			EnableEditorInputsCustomProcessing = True; //> stop the local player inputs to avoid desync due to the custom air_mapping and the user interactions.
+			NbClassicBlocks = ClassicBlocks.count;
+			Pillars = GetPillars();
+			
+			NextMapElemColor = convertBlockColor(block.Color);
+			if(block.GhostMode){
+				Simulation_GhostMode(BlockModel, block.Coord, convertBlockDirection(block.Direction), False);
+			}else{		
+				declare Boolean result = PlaceBlock(BlockModel, block.Coord, convertBlockDirection(block.Direction));
+				if (!result && block.ForcePlace) {
+					OnGround = False;
+					BiggestX = 0;
+					BiggestZ = 0;
+					CanPlaceBlock(BlockModel, block.Coord, convertBlockDirection(block.Direction), OnGround, VariantIndex);
+					if(OnGround){
+						Variant <=> BlockModel.VariantGround;
+					}else{
+						Variant <=> BlockModel.VariantAir;
+					}
+					foreach(BlockUnitModel in Variant.BlockUnitModels){
+						if(BlockUnitModel.RelativeOffset.X > BiggestX) BiggestX = BlockUnitModel.RelativeOffset.X;
+						if(BlockUnitModel.RelativeOffset.Z > BiggestZ) BiggestZ = BlockUnitModel.RelativeOffset.Z;
+					}
+					foreach(BlockUnitModel in Variant.BlockUnitModels){
+						CalculatedOffset = GetRotatedAndTranslatedOffset(BlockUnitModel.RelativeOffset, block.Coord, convertBlockDirection(block.Direction), BiggestX, BiggestZ);
+						RemoveBlock(CalculatedOffset);
+					}
+					PlaceBlock(BlockModel, block.Coord, convertBlockDirection(block.Direction));
+				}
+				
+				AutoSave();
+				
+				DeltaNbClassicBlocks = ClassicBlocks.count - NbClassicBlocks;
+				
+				AddEventLine(TiL::FormatDate(TiL::GetCurrent(), TiL::EDateFormats::Time) ^ " $o|$o " ^ block.login ^ " $o+$o " ^ block.ModelName ^ " at " ^ block.Coord);
+				NextMapElemColor = TmpElemColor;
+
+				if(block.Modif == "PlaceAir"){
+					Simulation_AirMode(DeltaNbClassicBlocks, Pillars, NbClassicBlocks, block.Coord);
+				}
+			}
+			EnableEditorInputsCustomProcessing = False;
+		}
+		else if (block.Modif == "Erase"){
+			if(block.GhostMode){
+				RemoveGhostBlock(BlockModel, block.Coord, convertBlockDirection(block.Direction));
+			}else{
+				RemoveBlock(block.Coord);
+			}
+			AutoSave();
+			AddEventLine(TiL::FormatDate(TiL::GetCurrent(), TiL::EDateFormats::Time) ^ " $o|$o " ^ block.login ^ " $o-$o at " ^ block.Coord);
+		}else if (block.Modif == "Message"){
+			AddChatPopup(block.login ^": "^block.ModelName);
+		}else if (block.Modif == "Skin"){
+			foreach(b in ClassicBlocks){
+				if(b.Coord == block.Coord && b.Dir == convertBlockDirection(block.Direction) && IsBlockModelSkinnable(b.BlockModel)){
+					SetBlockSkin(b, block.ModelName);
+				}
+			}
+		}
+	}
+}
+
+/***
+*	_ForcePlace define the Block Placement comportement. By Default PlaceBlock() dont override a block. But the normal PlaceBlock function of the editor that a user use, erease the block at the position then do a PlaceBlock(). This comportement is only apply on the first block of a multiple placing(when the user use spacebar+mouse mouvements).
+*
+*/
+Void OnMapModifiedBlockAirModePlace(Int3 _Coord,Boolean _ForcePlace, Boolean _GhostMode){
+	declare Modif = "PlaceAir"; 
+	declare JsonBlock block = JsonBlock{Modif = Modif, Coord = _Coord, ModelName = Cursor.BlockModel.Name, Direction = getBlockDirection(Cursor.Dir), login = LocalUser.Name, Color = getBlockColor(NextMapElemColor), Timestamp = Now, ForcePlace = _ForcePlace, GhostMode = _GhostMode};
+
+	AddModifToQueue(block);
+	AddEventLine(TiL::FormatDate(TiL::GetCurrent(), TiL::EDateFormats::Time) ^ " $o|$o " ^ LocalUser.Name ^ " $o+$o " ^ Cursor.BlockModel.Name ^ " at " ^ _Coord);
+}
+
+Void OnMapModifiedBlockPlace(Int3 _Coord,Boolean _ForcePlace, Boolean _GhostMode){
+	declare Modif = "Place"; 
+	declare JsonBlock block = JsonBlock{Modif = Modif, Coord = _Coord, ModelName = Cursor.BlockModel.Name, Direction = getBlockDirection(Cursor.Dir), login = LocalUser.Name, Color = getBlockColor(NextMapElemColor), Timestamp = Now, ForcePlace = _ForcePlace, GhostMode = _GhostMode};
+
+	AddModifToQueue(block);
+	AddEventLine(TiL::FormatDate(TiL::GetCurrent(), TiL::EDateFormats::Time) ^ " $o|$o " ^ LocalUser.Name ^ " $o+$o " ^ Cursor.BlockModel.Name ^ " at " ^ _Coord);
+}
+
+Void OnMapModifiedBlockErase(Int3 _Coord, SGhostBlock _GhostBlockErased){
+	declare Modif = "Erase"; 
+	declare JsonBlock block = JsonBlock{Modif = Modif, Coord = _Coord, login = LocalUser.Name, Timestamp = Now};
+
+	if(_GhostBlockErased.Coord != <-1,-1,-1>){
+		block.ModelName = _GhostBlockErased.Name;
+		block.Direction = getBlockDirection(_GhostBlockErased.Dir);
+		block.Coord = _GhostBlockErased.Coord;
+		block.GhostMode = True;
+	}
+
+	AddModifToQueue(block);
+	AddEventLine(TiL::FormatDate(TiL::GetCurrent(), TiL::EDateFormats::Time) ^ " $o|$o " ^ LocalUser.Name ^ " $o-$o at " ^ Cursor.Coord);
+}
+
+Void OnSkinModified(){
+	declare Modif = "Skin";
+	
+	foreach(block in Blocks){
+		if(GetBlockSkin(block) != ""){
+			declare JsonBlock block = JsonBlock{Modif = Modif,ModelName = GetBlockSkin(block), Direction = getBlockDirection(block.Dir), Coord = block.Coord, login = LocalUser.Name, Timestamp = Now};
+			AddModifToQueue(block);
+		}
+	}
+	
+	AddEventLine(TiL::FormatDate(TiL::GetCurrent(), TiL::EDateFormats::Time) ^ " $o|$o " ^ LocalUser.Name ^ " $o-$o skin synchro");
+}
+
+
+***OnInit***
+***
+declare Boolean Page_StopScript for ManialinkPage = False;
+declare Boolean Page_AirModeVisibility for ManialinkPage = False;
+declare Boolean Page_EnableAirMode for ManialinkPage = False;
+declare Boolean Page_EnableGhostMode for ManialinkPage = False;
+declare Boolean Page_IsLogged for ManialinkPage = False;
+declare Boolean Page_EditorAllowAirGhostMode for ManialinkPage = False;
+
+declare Integer NbClassicBlocks = 0;
+declare Integer DeltaNbClassicBlocks = 0;
+declare SClassicBlock[] Pillars;
+declare SGhostBlock[] StackGhostBlocks;
+
+LayersDefaultManialinkVersion = 3;
+ManialinkText = getUiManialink();
+
+/*Init UI Layers*/
+UIServerSettings = UILayerCreate();
+UIServerSettings.IsVisible = False;
+UIServerSettings.InOutAnimation = CUILayer::EUILayerAnimation::ScaleSlow;
+UIServerSettings.ManialinkPage = getServerSettingsManialink(HOST);
+
+UIChatPopup = UILayerCreate();
+UIChatPopup.IsVisible = True;
+UIChatPopup.ManialinkPage = getChatPopupManialink();
+
+UIModalStartOrQuit = UILayerCreate();
+UIModalStartOrQuit.InOutAnimation = CUILayer::EUILayerAnimation::ScaleFast;
+UIModalStartOrQuit.IsVisible = True;
+UIModalStartOrQuit.ManialinkPage = getModalStartOrQuitManialink();
+
+UIParameter = UILayerCreate();
+UIParameter.IsVisible = False;
+UIParameter.ManialinkPage = getParameterManialink();
+
+UIChat = UILayerCreate();
+UIChat.IsVisible = False;
+UIChat.ManialinkPage = getChatManialink();
+
+UIDebugView = UILayerCreate();
+UIDebugView.IsVisible = True;
+UIDebugView.ManialinkPage = getDebugViewManialink();
+
+UIMainModal = UILayerCreate();
+UIMainModal.InOutAnimation = CUILayer::EUILayerAnimation::ScaleFast;
+UIMainModal.IsVisible = False;
+UIMainModal.ManialinkPage = getMainModalManialink();
+
+UIUpdateModal = UILayerCreate();
+UIUpdateModal.InOutAnimation = CUILayer::EUILayerAnimation::ScaleFast;
+UIUpdateModal.IsVisible = False;
+UIUpdateModal.ManialinkPage = getUpdateModalManialink();
+
+log("starting...");
+log(TiL::FormatDate(TiL::GetCurrent(), TiL::EDateFormats::Time) ^ " > " ^ ScriptName ^ " V " ^ Version ^ " launched.");
+
+HideInventory = True;
+
+sleep(200); //time to let the layer be ready to handle events
+AddChatPopup("$F00Editor: Welcome, do not forget to disable \nthe Air Block Mode.", 5000, False);
+
+Page_EditorAllowAirGhostMode = IsAirGhostModeAllowed();
+if(Page_EditorAllowAirGhostMode){
+	//TODO : when the macroblock set will be made ; Create all macroblock instances.
+}
+***
+
+//send a request to get all new actions every 3 seconds
+***SendHttpListener***
+***
+if(!ListenerRequestUp && G_TimeListenerClosed + 3000 < Now){
+	declare JsonBlockList BlockList = JsonBlockList{token = G_Token};
+	declare Text Data = BlockList.tojson();
+	declare Text[Text] json = ["data" => Data];
+	//log("json");
+	//log(json);
+	HttpPost(HOST^"/"^G_LobbyId^"/listener?login="^LocalUser.Name, json);
+	ListenerRequestUp = True;
+}
+***
+
+//check if the last listener request is closed or not and play the logic if there is a response
+***OnHttpRequest***
+***
+if(Request.Url == HOST^"/"^G_LobbyId^"/listener?login="^LocalUser.Name && Request.IsCompleted) {
+	if (Request.StatusCode == 200) {
+		OnListenerResponse(Request.Result);
+	}
+	ListenerRequestUp = False;
+	G_TimeListenerClosed = Now;
+}
+***
+
+***OnCustomEventSendChat***
+***
+declare Modif = "Message"; 
+declare JsonBlock block = JsonBlock{Modif = Modif, ModelName = msg, login = LocalUser.Name, Timestamp = Now};
+
+AddModifToQueue(block);
+AddChatPopup(block.login ^": "^block.ModelName);
+AddEventLine(TiL::FormatDate(TiL::GetCurrent(), TiL::EDateFormats::Time) ^ " $o|$o " ^ LocalUser.Name ^ " messageSend ");
+***
+
+//create or join a lobby by requesting the server then setup the user interface and token if it's OK
+***OnCreateOrJoinLobby***
+***
+declare Modif = "Create";
+declare JsonBlock block = JsonBlock{Modif = Modif, login = LocalUser.Name, role = G_IsAdmin, Timestamp = Now};
+
+declare Text Data = block.tojson();
+declare Request = SendCreateOrJoin(Data);
+declare Boolean Exit = False;
+declare Boolean Dropped = False;
+
+while(!Exit){
+	if(Request.IsCompleted){
+		Exit = True;
+	}
+	foreach(Event in PendingEvents){
+		if(Event.Type == CMapEditorPluginEvent::Type::LayerCustomEvent){
+			if(Event.CustomEventType != "createOrJoinLobby"){
+				Http.Destroy(Request);
+				Dropped = True;
+				Exit = True;
+			}
+		}
+	}
+	yield;
+}
+
+if(Dropped){
+	G_Token = "";
+	AddChatPopup("$F00Editor: Something went wrong.\nAre you sure this is the right party code\nor if it's the right server?", 5000, False);
+}else if(Request.StatusCode >= 200 && Request.StatusCode < 300) {
+	declare Result = Request.Result;
+	declare JsonBlockList BlockList;
+	Http.Destroy(Request);
+	
+	BlockList.fromjson(Result);
+	G_Token = BlockList.token;
+	G_ListModif.token = G_Token;
+	Page_IsLogged = True;
+	
+	//setup Ingame interface when the player is logged
+	HideInventory = True;
+	UIMainModal.IsVisible = False;
+	UIParameter.IsVisible = True;
+	UIChat.IsVisible = True;
+	
+	AddChatPopup("$F00Editor: Your multi-editor is lauched, Have Fun!", 5000, False);
+}else{
+	G_Token = "";
+	AddChatPopup("$F00Editor: Something went wrong.\nAre you sure this is the right party code\nor if it's the right server?", 5000, False);
+	}
+//log(G_Token);
+
+***
+
+Void dummy() {
+	//this dummy function fix the compilation
+}
+
+/* --------------------- Main Script ------------------------ */
+
+main() {
+HOST = S_HOSTNAME;
+
+ListenerRequestUp = False;
+
+declare Boolean CursorOpen = False;
+declare Boolean KeyPressAfterCursorOpen = False;
+declare Boolean MapModifiedWhenCursorOpen = False;
+declare Boolean WelcomeMessageIsShown = False;
+declare Boolean ChangedPlaceModeToSkin = False;
+
+declare Boolean HasCustomRGB = False;
+declare Boolean HasCheckedForUpdate = False;
+
++++ OnInit +++
+
+  while(True) {
+		NbClassicBlocks = ClassicBlocks.count;
+		Pillars = GetPillars();
+		StackGhostBlocks = GetStackGhostBlocks();
+
+    	yield;
+		
+		DeltaNbClassicBlocks = ClassicBlocks.count - NbClassicBlocks;
+		
+		if (Page_StopScript) break;
+		
+		if(!C_AllowedPlaceMode.exists(PlaceMode)){
+			PlaceMode = C_AllowedPlaceMode[0]; //::PlaceMode::Block
+		}
+		
+		if(PlaceMode == C_AllowedPlaceMode[2] && !ChangedPlaceModeToSkin){
+			ChangedPlaceModeToSkin = True;
+			AddChatPopup("$F00Editor: Multi images and\nURLs are not supported.", 5000, False);
+		}else if(PlaceMode != C_AllowedPlaceMode[2] && ChangedPlaceModeToSkin){
+			ChangedPlaceModeToSkin = False;
+		}
+		
+		Page_AirModeVisibility = (PlaceMode == ::PlaceMode::Block || PlaceMode == ::PlaceMode::FreeBlock) && !HideInventory;
+		
+		if(Page_EnableGhostMode && !HasCustomRGB){
+			HasCustomRGB = True;
+			Cursor.SetCustomRGB (<.05,.17,.05>);
+		}else if (!Page_EnableGhostMode && HasCustomRGB){
+			HasCustomRGB = False;
+			Cursor.ResetCustomRGB();
+		}
+		
+		LoopSendModif();
+		
+		if(Page_IsLogged){
+			if(!HasCheckedForUpdate){
+				CheckForUpdate();
+				HasCheckedForUpdate = True;
+			}
+			+++ SendHttpListener +++
+		}
+		
+	 	foreach(HttpEvent in Http.PendingEvents) {
+			declare Request = HttpEvent.Request;
+			
+			+++ OnHttpRequest +++
+			
+			if(!ListenerRequestUp){
+				Http.Destroy(Request);
+			}
+		} // httpEvents
+
+		foreach (Event in PendingEvents) {
+			switch (Event.Type) {
+				/******************************************************/
+				/***************    LayerCustomEvent    ***************/
+				/******************************************************/
+				case CMapEditorPluginEvent::Type::LayerCustomEvent: {
+					switch (Event.CustomEventType) {
+						case "removeAllAndContinue": {
+							RemoveAll();
+							AutoSave();
+							UILayerDestroy(UIModalStartOrQuit);
+							UIMainModal.IsVisible = True;
+							HideInventory = False;
+							PlaceMode = ::PlaceMode::Block;
+						}
+						case "exitPlugin": {
+							HideInventory = True;
+							Page_StopScript = True;
+						}
+						case "openDebugView": {
+							LayerCustomEvent(UIDebugView, "openDebugView", []);		
+						}
+						case "closeDebugView": {
+							LayerCustomEvent(UIDebugView, "closeDebugView", []);								
+						}
+						case "createOrJoinLobby": {
+							G_LobbyId = Event.CustomEventData[0];
+							G_IsAdmin = TextLib::ToInteger(Event.CustomEventData[1]);
+							+++ OnCreateOrJoinLobby +++
+						}
+						case "addChatPopup": {
+							AddChatPopup(Event.CustomEventData[0], TextLib::ToInteger(Event.CustomEventData[1]), False);
+						}
+						case "sendChat": {
+							declare Text msg = Event.CustomEventData[0];
+							if(msg != ""){
+								+++ OnCustomEventSendChat +++
+							}
+						}
+						case "openServerSettings": {
+							UIServerSettings.IsVisible = True;
+						}
+						case "closeServerSettings": {
+							UIServerSettings.IsVisible = False;
+							LayerCustomEvent (UIServerSettings, "reloadHostName", [HOST,""]);
+						}
+						case "saveServerSettings": {
+							HOST = Event.CustomEventData[0];
+							declare Pass = Event.CustomEventData[1];
+							UIServerSettings.IsVisible = False;
+						}
+						case "copyPartyCode": {
+							System.ClipboardSet(G_LobbyId);
+							Audio.PlaySoundEvent(CAudioManager::ELibSound::Alert, 0, 1.);
+						}	
+					}				
+				}
+				/******************************************************/
+				/*****************    EditorInput    ******************/
+				/******************************************************/
+				case CMapEditorPluginEvent::Type::EditorInput: {
+					if(Event.Input == CMapEditorPluginEvent::EInput::Undo){
+							Redo();
+					}
+				}
+				/******************************************************/
+				/*********    EditorEvent mapping related    **********/
+				/******************************************************/
+				case CMapEditorPluginEvent::Type::CursorSelectionBegin: {
+					if(PlaceMode == ::PlaceMode::Block && EditMode == ::EditMode::Place){
+						SelectionStartCoord = Cursor.Coord;
+						CursorOpen = True;
+						log("main:Placed!");
+						if(Page_EnableGhostMode){
+							OnMapModifiedBlockPlace(Cursor.Coord, True, True);
+							Simulation_GhostMode(Cursor.BlockModel, SelectionStartCoord, Cursor.Dir, True);
+						}else if(Page_EnableAirMode){
+							OnMapModifiedBlockAirModePlace(Cursor.Coord, True, False);
+							Simulation_AirMode(DeltaNbClassicBlocks, Pillars, NbClassicBlocks, SelectionStartCoord);
+						}else{
+							OnMapModifiedBlockPlace(Cursor.Coord,True, False);
+						}
+					}else if(EditMode == ::EditMode::Erase) {
+						if(PlaceMode == ::PlaceMode::Block){
+							declare SGhostBlock GhostBlockErased = GetGhostBlockErased(StackGhostBlocks);
+							OnMapModifiedBlockErase(Cursor.Coord, GhostBlockErased);
+						}
+					}	
+				}
+				case CMapEditorPluginEvent::Type::KeyPress: {
+					//if spacebar press, the user is using the 'drawing' effect to place block.
+					if(PlaceMode == ::PlaceMode::Block && EditMode == ::EditMode::Place){
+						if(Event.KeyCode == 119){
+							KeyPressAfterCursorOpen = CursorOpen;
+						}
+					}
+				}
+				case CMapEditorPluginEvent::Type::MapModified: {
+					if(PlaceMode == ::PlaceMode::Block && EditMode == ::EditMode::Place){
+						if(KeyPressAfterCursorOpen) MapModifiedWhenCursorOpen = True;
+					}
+				}
+				case CMapEditorPluginEvent::Type::CursorChange: {
+					if(PlaceMode == ::PlaceMode::Block && EditMode == ::EditMode::Place){
+						if(MapModifiedWhenCursorOpen) {
+							log("main:Placed bis!");
+							//at log(Cursor.Coord);
+							if(Page_EnableGhostMode){
+								//do nothing. The GhostMode, if you use the spacebar, only the firstblock is placed.
+								Undo();
+							}else if(Page_EnableAirMode){
+								OnMapModifiedBlockAirModePlace(Cursor.Coord,False, False);
+								Simulation_AirMode(DeltaNbClassicBlocks, Pillars, NbClassicBlocks, Cursor.Coord);
+							}else{
+								OnMapModifiedBlockPlace(Cursor.Coord,False, False);
+							}						
+						}
+					}
+					MapModifiedWhenCursorOpen = False;
+				}
+				case CMapEditorPluginEvent::Type::CursorSelectionEnd: {
+					if(PlaceMode == CMapEditorPlugin::PlaceMode::Skin){
+						OnSkinModified();
+					}else{
+						SelectionEndCoord = Cursor.Coord;
+																					
+						CursorOpen = False;
+						KeyPressAfterCursorOpen = False;
+						MapModifiedWhenCursorOpen = False;
+						SelectionStartCoord = <0, 0, 0>;
+						SelectionEndCoord = <0, 0, 0>;
+					}
+				}	
+			}
+		} // pending events
+		
+		+++ Loop +++
+  }
+
+}

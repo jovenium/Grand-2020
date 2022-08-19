@@ -1,0 +1,88 @@
+html {
+  background-color: #181D3A !important;
+}
+
+body {
+  background-color: #2cb172 !important;
+  /*padding: 50px;*/
+  color: #010c4c !important;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+li a {
+  color: #010c4c !important;
+}
+
+
+a:hover {
+  color: #2bff00 !important;
+}
+
+a:hover.btn {
+  color: #fff !important;
+  background-color: #1b6c46;
+  border-color: #2cb172;
+}
+
+.title {
+  color: #2bff00 !important;
+}
+
+.bg-nadeo {
+  background-color: #181D3A ;
+}
+
+.brake {
+  height: 25px;
+ }
+
+.brake-2 {
+ height: 50px;
+}
+
+.brake-3 {
+  height: 130px;
+}
+
+.brake-5 {
+  height: 540px;
+ }
+
+.banner {
+  background-image : url(/images/banner103.jpg);
+  background-size: cover;
+  background-position: center;
+}
+
+.mask {
+  position: absolute;
+  top: 200px;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  width: 100%;
+  /*height: 100%;*/
+}
+
+.mask-up {
+  top: 90px;
+}
+
+.color-white {
+  color: #fff;
+}
+
+.btn-mygreen {
+  color: #fff;
+  background-color: #2cb172;
+   border-color: #2cb172;
+}
+
+.card {
+  background-color: #d5f9e6 !important;
+}
+
+footer {
+  background-color: #181D3A;
+  color: rgb(116, 116, 116);
+}
