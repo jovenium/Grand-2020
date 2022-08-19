@@ -22,3 +22,4 @@ For more information, join the official playground discord : https://discord.gg/
 ## Develop and testing localy
 
 If you are a developer or if you want to run your own server, please refer you to [this readme](./grand2020/README.md).
+
