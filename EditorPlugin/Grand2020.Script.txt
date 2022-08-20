@@ -47,7 +47,7 @@
 }
 
 
-#Const	Version	"v0.1.1"
+#Const	Version	"v0.1.2"
 #Const	ScriptName	"Grand2020.Script.txt"
 
 #Const  C_AllowedPlaceMode [
@@ -1338,7 +1338,6 @@ Void OnListenerResponse(Text _response) {
 	foreach( block in BlockLists.JsonBlocks){
 		yield;
 		declare BlockModel = GetBlockModelFromName(block.ModelName);
-		log(BlockModel);
 		if (block.Modif == "Place" || block.Modif == "PlaceAir"){
 			EnableEditorInputsCustomProcessing = True; //> stop the local player inputs to avoid desync due to the custom air_mapping and the user interactions.
 			NbClassicBlocks = ClassicBlocks.count;
@@ -1381,12 +1380,13 @@ Void OnListenerResponse(Text _response) {
 				DeltaNbClassicBlocks = ClassicBlocks.count - NbClassicBlocks;
 				
 				AddEventLine(TiL::FormatDate(TiL::GetCurrent(), TiL::EDateFormats::Time) ^ " $o|$o " ^ block.login ^ " $o+$o " ^ block.ModelName ^ " at " ^ block.Coord);
-				NextMapElemColor = TmpElemColor;
+				//NextMapElemColor = TmpElemColor;
 
 				if(block.Modif == "PlaceAir"){
 					Simulation_AirMode(DeltaNbClassicBlocks, Pillars, NbClassicBlocks, block.Coord);
 				}
 			}
+			NextMapElemColor = TmpElemColor;
 			EnableEditorInputsCustomProcessing = False;
 		}
 		else if (block.Modif == "Erase"){
@@ -1649,6 +1649,11 @@ declare Boolean HasCheckedForUpdate = False;
 		DeltaNbClassicBlocks = ClassicBlocks.count - NbClassicBlocks;
 		
 		if (Page_StopScript) break;
+		
+		//wait the plugin when the player test the map
+		while(PlaceMode == C_AllowedPlaceMode[3]){
+			yield;
+		}		
 		
 		if(!C_AllowedPlaceMode.exists(PlaceMode)){
 			PlaceMode = C_AllowedPlaceMode[0]; //::PlaceMode::Block
