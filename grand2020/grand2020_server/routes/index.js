@@ -30,6 +30,12 @@ function getUserByToken(token) {
     return users[objKey];
 }
 
+function getFilteredUserName(username){
+    const validChars = 'A-Za-z0-9';
+    var regex = new RegExp('[^' + validChars + ']', 'g');
+    return username.replace(regex, '');
+}
+
 
 function ensureValidId(req, res, next) {
     req.InstanceId = req.params.id;
@@ -190,18 +196,19 @@ module.exports = function (eventDispatcher) {
         /**
          * Add user to redis if does not exists and incr his party count
          */
-        redisIncrPlayer(body['login']);
+        let userName = getFilteredUserName(body['login']);
+        redisIncrPlayer(userName);
         if(body['role'] == 1){
             redisIncrGlobalPartyCount();
         }
         
-        editorSession[id].addUser(body['login']);
+        editorSession[id].addUser(userName);
 
         let tok = uuidv4();
-        users[body['login']] = {
+        users[userName] = {
             token: tok,
             room: id,
-            login: body['login'],
+            login: userName,
             role: body['role'],
         };
 
