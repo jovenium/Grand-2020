@@ -72,6 +72,12 @@ function KeepLastActionByPosition(responseActions){
     return result;
 }
 
+function getFilteredUserName(username){
+    const validChars = 'A-Za-z0-9';
+    var regex = new RegExp('[^' + validChars + ']', 'g');
+    return username.replace(regex, '');
+}
+
 class sessionHandler {
 
     constructor(id, eventDispatcher) {
@@ -99,7 +105,7 @@ class sessionHandler {
 
     registerListener(req, res) {
         this.lastActionTimestamp = Date.now();
-        var login = req.query['login'];
+        var login = getFilteredUserName(req.query['login']);
         var needFullSync = false; 
 
         if(this.clientLogins[login] == undefined){
@@ -172,7 +178,7 @@ class sessionHandler {
 
     sendMessage(req) {
         this.lastActionTimestamp = Date.now();
-        let login = req.query['login'] || "none";
+        let login = getFilteredUserName(req.query['login']) || "none";
         let message = req.body['data'] || "{}";
         var actionList = message.JsonBlocks;
         for (let i = 0; i <actionList.length;i++){

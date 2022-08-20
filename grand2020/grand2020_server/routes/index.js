@@ -36,7 +36,6 @@ function getFilteredUserName(username){
     return username.replace(regex, '');
 }
 
-
 function ensureValidId(req, res, next) {
     req.InstanceId = req.params.id;
     //console.log(req.body['data']['token']);
