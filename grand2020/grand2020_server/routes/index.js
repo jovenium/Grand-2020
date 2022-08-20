@@ -30,6 +30,11 @@ function getUserByToken(token) {
     return users[objKey];
 }
 
+function getFilteredString(username){
+    const validChars = 'A-Za-z0-9';
+    var regex = new RegExp('[^' + validChars + ']', 'g');
+    return username.replace(regex, '');
+}
 
 function ensureValidId(req, res, next) {
     req.InstanceId = req.params.id;
@@ -179,6 +184,11 @@ module.exports = function (eventDispatcher) {
     router.post('/:id/join', function (req, res, next) {
         let body = req.body['data'];
         let id = req.params.id;
+        console.log(id);
+        if(getFilteredString(id) !== id || id.length != 6){
+            res.sendStatus(404);
+            return;
+        }
         //create the session if doesnot exist and return a session token
         if (editorSession[id] === undefined && body['role'] == 1) {
             editorSession[id] = new sessionHandler(id, eventDispatcher);
@@ -190,18 +200,19 @@ module.exports = function (eventDispatcher) {
         /**
          * Add user to redis if does not exists and incr his party count
          */
-        redisIncrPlayer(body['login']);
+        let userName = getFilteredString(body['login']);
+        redisIncrPlayer(userName);
         if(body['role'] == 1){
             redisIncrGlobalPartyCount();
         }
         
-        editorSession[id].addUser(body['login']);
+        editorSession[id].addUser(userName);
 
         let tok = uuidv4();
-        users[body['login']] = {
+        users[userName] = {
             token: tok,
             room: id,
-            login: body['login'],
+            login: userName,
             role: body['role'],
         };
 
