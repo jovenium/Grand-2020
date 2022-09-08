@@ -47,7 +47,7 @@
 }
 
 
-#Const	Version	"v0.1.2"
+#Const	Version	"v0.1.3"
 #Const	ScriptName	"Grand2020.Script.txt"
 
 #Const  C_AllowedPlaceMode [
@@ -102,27 +102,27 @@ CHttpRequest HttpPost(Text _address, Text[Text] _params) {
 Text getUpdateModalManialink() {
 	return """	
 	<frame posn="3 10 10" id="Frame_Update" hidden="0" scale="0.8">
-		<label pos="0 47" size="203 18" text="Grand 2020 - Update" textfont="RajdhaniMono" textsize="8" halign="center" valign="center" id="welcome_content"/>
-		<quad pos="-3 46"  size="157 14" bgcolor="FFFA" style="Bgs1" substyle="BgTitle" halign="center" valign="center" /><!--style="Bgs1" substyle="BgWindow4" colorize="F00"-->
+		<label z-index="2" pos="0 47" size="203 18" text="Grand 2020 - Update" textfont="RajdhaniMono" textsize="8" halign="center" valign="center" id="welcome_content"/>
+		<quad z-index="1" pos="-3 46"  size="157 14" bgcolor="FFFA" style="Bgs1" substyle="BgTitle" halign="center" valign="center" /><!--style="Bgs1" substyle="BgWindow4" colorize="F00"-->
 		
-		<label posn="-55 34" sizen="104 16" text="Update:"  textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" translate="0" textsize="5" halign="right" valign="center"/>
-		<quad pos="-79.5 29"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>
+		<label z-index="2" posn="-55 34" sizen="104 16" text="Update:"  textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" translate="0" textsize="5" halign="right" valign="center"/>
+		<quad z-index="1" pos="-79.5 29"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>
 		
 		<frame pos="1 -2">	
 			<!--download section-->
-			<frame pos = "0 6">	
-				<label posn="52 11" sizen="20 5" text="Download Update" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="Btn_DownloadUpdate"/>
-				<label pos="-76 18" z-index="0" size="106 17" textsize="3" text="An update is available:"  autonewline="1" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx"/>
-				<label pos="-76 12" z-index="0" size="106 17" textsize="1.7" text="Please download the latest version of the plugin before building. You are currently on the {{{Version}}}. The latest version is the "  autonewline="1" textcolor="C1C1C1FF" id="Label_VersionDetail"/>
-				<quad pos="-4 11"  size="149 17" bgcolor="000" halign="center" valign="center" opacity="0.2" colorize="000"/>
+			<frame z-index="1" pos = "0 6">	
+				<label z-index="2" posn="52 11" sizen="20 5" text="Download Update" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="Btn_DownloadUpdate"/>
+				<label z-index="2" pos="-76 18" size="106 17" textsize="3" text="An update is available:"  autonewline="1" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx"/>
+				<label z-index="2" pos="-76 12" size="106 17" textsize="1.7" text="Please download the latest version of the plugin before building. You are currently on the {{{Version}}}. The latest version is the "  autonewline="1" textcolor="C1C1C1FF" id="Label_VersionDetail"/>
+				<quad z-index="0" pos="-4 11"  size="149 17" bgcolor="000" halign="center" valign="center" opacity="0.2" colorize="000"/>
 			</frame>
 		
 		</frame>
 		
 		<!--footer buttons-->
-		<label posn="-61 -3" sizen="12 1" text="Exit Plugin" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="Btn_ExitPlugin"/>
+		<label z-index="2" posn="-61 -3" sizen="12 1" text="Exit Plugin" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="Btn_ExitPlugin"/>
 				
-		<quad class="" size="157.5 60" pos="-3 20" style="ManiaplanetSystem" substyle="BgFloat" halign="center" valign="center"/>
+		<quad z-index="-1" class="" size="157.5 60" pos="-3 20" style="ManiaplanetSystem" substyle="BgFloat" halign="center" valign="center"/>
 		
 	</frame>
 
@@ -169,48 +169,48 @@ Text getMainModalManialink() {
 	<style class="background2" style="Bgs1" substyle="BgCardList" halign="center" valign="center" opacity="0.75"/>
 </stylesheet>
 
-<frame posn="0 0 5" scale="0.8">
+<frame z-index="5" pos="0 0" scale="0.8">
 
-	<frame posn="0 0 10">
+	<frame z-index="10" pos="0 0">
 	
-		<frame posn="0 0 10" id="Home" hidden="0">
-			<label pos="3 77" size="203 15" text="Welcome to Grand 2020! " textfont="RajdhaniMono" textsize="10" halign="center" valign="center" id="welcome_content"/>
-			<quad pos="3 76"  size="210 18" bgcolor="FFFA" style="Bgs1" substyle="BgTitle" halign="center" valign="center" />
+		<frame z-index="10" pos="0 0" id="Home" hidden="0">
+			<label z-index="1" pos="3 77" size="203 15" text="Welcome to Grand 2020! " textfont="RajdhaniMono" textsize="10" halign="center" valign="center" id="welcome_content"/>
+			<quad z-index="0" pos="3 76"  size="210 18" bgcolor="FFFA" style="Bgs1" substyle="BgTitle" halign="center" valign="center" />
 			
-			<frame pos="1 6.5">
-				<label posn="-97 52" sizen="75 17" text="What is Grand 2020? "  valign="center" textfont="RajdhaniMono" translate="0" textsize="5"/>
-				<quad pos="-97 47"  size="10 1" bgcolor="FFFA"  style="Bgs1" substyle="BgWindow4"/>
-				<label pos="-97 44"  size="126 17" text="Grand 2020 is a multiplayer map editor for Trackmania, created by Jovenium and based on the initial project by LeGmask and Reaby." textsize="3.5" autonewline="1" textcolor="C1C1C1FF" halign="left"/>
-				<quad pos="-100 57"  size="129 31" bgcolor="000" opacity="0.2"/>
+			<frame z-index="1" pos="1 6.5">
+				<label z-index="2" pos="-97 52" sizen="75 17" text="What is Grand 2020? "  valign="center" textfont="RajdhaniMono" translate="0" textsize="5"/>
+				<quad z-index="1" pos="-97 47"  size="10 1" bgcolor="FFFA"  style="Bgs1" substyle="BgWindow4"/>
+				<label z-index="2" pos="-97 44"  size="126 17" text="Grand 2020 is a multiplayer map editor for Trackmania, created by Jovenium and based on the initial project by LeGmask and Reaby." textsize="3.5" autonewline="1" textcolor="C1C1C1FF" halign="left"/>
+				<quad z-index="0" pos="-100 57"  size="129 31" bgcolor="000" opacity="0.2"/>
 			</frame>
 			
-			<frame hidden="1">
+			<frame z-index="1" hidden="1">
 			<label posn="48.9 52" sizen="31 17" text="News: " halign="center"  valign="center" textfont="RajdhaniMono" translate="0" textsize="8"/>
 			<quad pos="35 46"  size="27 2" bgcolor="FFFA" style="Bgs1" substyle="ProgressBarSmall"/>
 			<label pos="36 43"  size="68 56" text="Beta 1.0 officially released" textsize="5" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" autonewline="1" textcolor="CCCCCCFF" halign="left" id="news_content"/>
 			</frame>			
 			
-			<frame pos="36 6">
-			<label posn="0 52" sizen="53 17" text="Need help?" halign="left"  valign="center" textfont="RajdhaniMono" translate="0" textsize="5"/>
-			<quad pos="0 47"  size="10 1" bgcolor="FFFA"  style="Bgs1" substyle="BgWindow4"/>
-			<label pos="0 44"  size="68 12" text="Join the Playground community!" textsize="3.5" autonewline="1" textcolor="C1C1C1FF" halign="left" id="version_content"/>	
-			<label posn="50.5 31" sizen="41 5" text="Discord" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="discord_btn" url="https://discord.gg/nrdBkV6XBg"/>
-			<quad pos="-3.2 57.3"  size="72.8 31" bgcolor="000" opacity="0.2"/>
+			<frame z-index="1" pos="36 6">
+			<label z-index="2" pos="0 52" sizen="53 17" text="Need help?" halign="left"  valign="center" textfont="RajdhaniMono" translate="0" textsize="5"/>
+			<quad z-index="1" pos="0 47"  size="10 1" bgcolor="FFFA"  style="Bgs1" substyle="BgWindow4"/>
+			<label z-index="2" pos="0 44"  size="68 12" text="Join the Playground community!" textsize="3.5" autonewline="1" textcolor="C1C1C1FF" halign="left" id="version_content"/>	
+			<label z-index="2" pos="50.5 31" sizen="41 5" text="Discord" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="discord_btn" url="https://discord.gg/nrdBkV6XBg"/>
+			<quad z-index="0" pos="-3.2 57.3"  size="72.8 31" bgcolor="000" opacity="0.2"/>
 			</frame>
 			
 			
-			<quad id="QuadServerSetting" pos="96 27.5" size="8 8" style="UICommon64_1" substyle="Parameters_light" tooltip="Server settings" scriptevents="1"/>
-			<label posn="3 24" sizen="161 17" text="Start a new build or join a room" halign="center"  valign="center" textfont="RajdhaniMono" translate="0" textsize="5"/>
-			<quad pos="3 18"  size="10 1" bgcolor="FFFA"  style="Bgs1" substyle="BgWindow4" halign="center"/>
+			<quad z-index="1" id="QuadServerSetting" pos="96 27.5" size="8 8" style="UICommon64_1" substyle="Parameters_light" tooltip="Server settings" scriptevents="1"/>
+			<label z-index="1" posn="3 24" sizen="161 17" text="Start a new build or join a room" halign="center"  valign="center" textfont="RajdhaniMono" translate="0" textsize="5"/>
+			<quad z-index="0" pos="3 18"  size="10 1" bgcolor="FFFA"  style="Bgs1" substyle="BgWindow4" halign="center"/>
 			
-			<frame id="Frame_PartyCodeJoin" pos="70 5" hidden="1">
+			<frame z-index="1" id="Frame_PartyCodeJoin" pos="70 5" hidden="1">
 				<label pos="-97 -8"  size="96 26" text="Enter Party code : " textsize="5" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" autonewline="1" halign="left"/>
 				<quad pos="-97 -15.47"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>	
 				<entry posn="-59.5 -22" sizen="50 6" valign="center" halign="center" id="Entry_PartyCode" scriptevents="1" default="" textformat="Password" selecttext="1"/>
 				<quad id="Quad_PCJoinShow" colorize="FFF" image="file://Media/Manialinks/Nadeo/TMNext/Menus/Icons/128x128/icons_128_HUD_Cam_unfollow_inc.dds" scriptevents="1" pos="-30 -22" z-index="0" size="6 6" bgcolor="FFFA" valign="center" halign="center" tooltip="Show/Hide Party Code"/>
 			</frame>		
 
-			<frame id="Frame_PartyCodeCreate" pos="70 5" hidden="1">
+			<frame z-index="1" id="Frame_PartyCodeCreate" pos="70 5" hidden="1">
 				<label pos="-97 -8"  size="96 26" text="Your Party code : " textsize="5" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" autonewline="1" halign="left" id="version_content"/>
 				<quad pos="-97 -15.47"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>
 				<frame pos="-24 -3">	
@@ -221,16 +221,16 @@ Text getMainModalManialink() {
 				</frame>
 			</frame>
 			
-			<frame id="Frame_PartyCodeExitOrLogin" pos="38.5 -2" hidden="1">
+			<frame z-index="1" id="Frame_PartyCodeExitOrLogin" pos="38.5 -2" hidden="1">
 				<label posn="-15.9 -45.5" sizen="20 5" text="Join" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="home_btnlogin"/>
 				<label posn="-54.9 -45.5" sizen="20 5" text="Return" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="home_btnreturn"/>
 				<!--<label posn="-54.9 -45.5" sizen="20 5" text="Exit" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="home_btnexit"/>-->
 			</frame>
 			
-			<label posn="-79 -47.5" sizen="20 5" text="Exit Plugin" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="home_btnexit"/>
+			<label z-index="1" posn="-79 -47.5" sizen="20 5" text="Exit Plugin" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="home_btnexit"/>
 			
 			
-			<frame id="Frame_CreateOrJoin" pos="-21 -16">
+			<frame z-index="1" id="Frame_CreateOrJoin" pos="-21 -16">
 				<frame pos="0 0">
 					<quad id="Btn_CreateParty" pos="0 0" z-index="0" size="40 45" bgcolor="FFFA" valign="center" halign="center" scriptevents="1" style="Bgs1InRace" substyle="BgCard" colorize="CCC"/>
 					<label pos="0 0" z-index="1" size="20 5" text="Create" halign="center" valign="center" textprefix="$t" textfont="RajdhaniMono"/>
@@ -242,11 +242,11 @@ Text getMainModalManialink() {
 			</frame>
 			
 			
-			<quad pos="-99 29"  size="204.5 82" bgcolor="000" opacity="0.2"/>
+			<quad z-index="-1" pos="-99 29"  size="204.5 82" bgcolor="000" opacity="0.2"/>
 	
-			<quad posn="3 13" sizen="210.5 140" style="ManiaplanetSystem" substyle="BgFloat" halign="center" valign="center" scriptevents="1"/>
+			<quad z-index="-1" pos="3 13" sizen="210.5 140" style="ManiaplanetSystem" substyle="BgFloat" halign="center" valign="center" scriptevents="1"/>
 		</frame>
-		<quad sizen="320 180" bgcolor="000A" halign="center" valign="center" id="home_bg" opacity="0" />
+		<quad z-index="0" sizen="320 180" bgcolor="000A" halign="center" valign="center" id="home_bg" opacity="0" />
 	</frame>
 </frame>
 <script><!--
@@ -410,23 +410,23 @@ Text getChatManialink() {
 	<style class="background2" style="Bgs1" substyle="BgCardList" halign="center" valign="center" opacity="0.75"/>
 </stylesheet>
 	
-	<frame>
+	<frame z-index="0">
 		<quad pos="138 82" z-index="0" size="11 11" bgcolor="FFFA" style="Icons128x32_1" substyle="Windowed" scriptevents="1" id="Btn_IconChat"/>
 	</frame>
 	<!--chat window-->
-	<frame posn="4 0 8" id="chat" hidden="1">
+	<frame z-index="8" pos="4 0" id="chat" hidden="1">
 			
-		<frame posn="77 61 2" id="chatlistcontainer">
-			<label posn="-161 19" sizen="168 110" autonewline="1" textsize="2,5" id="chatlist" textfont="Gotham/Gotham-Book" />
-			<quad size="170 112" pos="-162 19" style="Bgs1" substyle="BgCardList" opacity="0.8"/>	
+		<frame z-index="2" pos="77 61" id="chatlistcontainer">
+			<label z-index="2" pos="-161 19" sizen="168 110" autonewline="1" textsize="2,5" id="chatlist" textfont="Gotham/Gotham-Book" />
+			<quad z-index="0" size="170 112" pos="-162 19" style="Bgs1" substyle="BgCardList" opacity="0.8"/>	
 		</frame>
 		
-		<entry pos="-85 -38" size="132.5 6.5" default="" valign="center" focusareacolor2="7B7B7BFF" focusareacolor1="727272FF" scriptevents="1" style="TextValueSmall" id="message"/>
-		<label class="button" posn="67.5 -38" text="Send" scriptevents="1" id="Send" size="26 7"/>
+		<entry z-index="1" pos="-85 -38" size="132.5 6.5" default="" valign="center" focusareacolor2="7B7B7BFF" focusareacolor1="727272FF" scriptevents="1" style="TextValueSmall" id="message"/>
+		<label z-index="1" class="button" posn="67.5 -38" text="Send" scriptevents="1" id="Send" size="26 7"/>
 	
-		<quad class="background" size="180 140" pos="0 15" hidden="1"/>
-		<quad class="background" size="177 129" pos="0 19.5" style="ManiaplanetSystem" substyle="BgFloat"/>
-		<quad class="background2" size="177 129" pos="0 19.5" hidden="1"/>
+		<quad z-index="0" class="background" size="180 140" pos="0 15" hidden="1"/>
+		<quad z-index="0" class="background" size="177 129" pos="0 19.5" style="ManiaplanetSystem" substyle="BgFloat"/>
+		<quad z-index="0" class="background2" size="177 129" pos="0 19.5" hidden="1"/>
 		
 	
 	</frame>
@@ -511,7 +511,7 @@ Text getDebugViewManialink() {
 	return """
 	<!--Debug Event View-->
 	<frame posn="4 0 8" id="events" hidden="1">
-		<label posn="115 63" sizen="80 6" text="Event view" valign="center2" halign="center" style="TextTitle3"/>
+		<label z-index="2" posn="115 63" sizen="80 6" text="Event view" valign="center2" halign="center" style="TextTitle3"/>
 		<quad pos="75 66" z-index="0" size="80 52.6" bgcolor="FFFA" style="Bgs1" substyle="BgColorContour"/>
 		<quad posn="115 40.1" sizen="80 51.2" bgcolor="FFFA" style="Bgs1" substyle="BgCardList" valign="center" halign="center"/>
 		
@@ -610,40 +610,40 @@ Text getParameterManialink() {
 	<quad size="24 11" pos="138 82" z-index="-1" bgcolor="000" opacity="0.50"/>
 	
 	<frame posn="3 20 10" id="Settings" hidden="1" scale="0.8">
-		<label pos="0 47" size="203 18" text="Grand 2020 - Settings" textfont="RajdhaniMono" textsize="8" halign="center" valign="center" id="welcome_content"/>
-		<quad pos="-3 46"  size="157 14" bgcolor="FFFA" style="Bgs1" substyle="BgTitle" halign="center" valign="center" /><!--style="Bgs1" substyle="BgWindow4" colorize="F00"-->
+		<label z-index="2" pos="0 47" size="203 18" text="Grand 2020 - Settings" textfont="RajdhaniMono" textsize="8" halign="center" valign="center" id="welcome_content"/>
+		<quad z-index="0" pos="-3 46"  size="157 14" bgcolor="FFFA" style="Bgs1" substyle="BgTitle" halign="center" valign="center" /><!--style="Bgs1" substyle="BgWindow4" colorize="F00"-->
 		
-		<label posn="-55 34" sizen="104 16" text="Settings:"  textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" translate="0" textsize="5" halign="right" valign="center"/>
-		<quad pos="-79.5 29"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>
+		<label z-index="2" posn="-55 34" sizen="104 16" text="Settings:"  textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" translate="0" textsize="5" halign="right" valign="center"/>
+		<quad z-index="1" pos="-79.5 29"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>
 		
 		<frame pos="1 -2">
 		
 			<!--party code section-->
-			<frame>	
-				<label posn="52 11" sizen="20 5" text="Copy" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="Btn_CopyPartyCode"/>
-				<label pos="-76 16" z-index="0" size="106 17" textsize="3" text="Party Code:"  autonewline="1" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx"/>
-				<label pos="-76 10" z-index="0" size="106 17" textsize="1.7" text="Copy your party code to share it with your buddies."  autonewline="1" textcolor="C1C1C1FF"/>
+			<frame z-index="1">	
+				<label z-index="2" posn="52 11" sizen="20 5" text="Copy" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="Btn_CopyPartyCode"/>
+				<label z-index="2" pos="-76 16" size="106 17" textsize="3" text="Party Code:"  autonewline="1" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx"/>
+				<label z-index="2" pos="-76 10" size="106 17" textsize="1.7" text="Copy your party code to share it with your buddies."  autonewline="1" textcolor="C1C1C1FF"/>
 				<quad pos="-4 11"  size="149 17" bgcolor="000" halign="center" valign="center" opacity="0.2" colorize="000"/>
 			</frame>
 				
 			<!--debug section-->
-			<frame pos = "0 -21">	
-				<label posn="52 11" sizen="20 5" text="value" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="settings_debug"/>
-				<label pos="-76 18" z-index="0" size="106 17" textsize="3" text="Debug view:"  autonewline="1" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx"/>
-				<label pos="-76 12" z-index="0" size="106 17" textsize="1.7" text="Toggle the event view to show the latest events of the room, such as placed or removed blocks."  autonewline="1" textcolor="C1C1C1FF"/>
+			<frame z-index="1" pos="0 -21">	
+				<label z-index="2" posn="52 11" sizen="20 5" text="value" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="settings_debug"/>
+				<label z-index="2" pos="-76 18" size="106 17" textsize="3" text="Debug view:"  autonewline="1" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx"/>
+				<label z-index="2" pos="-76 12" size="106 17" textsize="1.7" text="Toggle the event view to show the latest events of the room, such as placed or removed blocks."  autonewline="1" textcolor="C1C1C1FF"/>
 				<quad pos="-4 11"  size="149 17" bgcolor="000" halign="center" valign="center" opacity="0.2" colorize="000"/>
 			</frame>
 		
 		</frame>
 		
 		<!--footer buttons-->
-		<label posn="-61 -48" sizen="12 1" text="Exit Plugin" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="Btn_ExitPlugin"/>
-		<label posn="55 -48" sizen="12 1" text="Close" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="settings_close"/>
+		<label z-index="2" posn="-61 -48" sizen="12 1" text="Exit Plugin" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="Btn_ExitPlugin"/>
+		<label z-index="2" posn="55 -48" sizen="12 1" text="Close" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="settings_close"/>
 		
 		
 		<!--<quad pos="-3 -11.5"  size="154 83" bgcolor="FFFFFFFF" style="Bgs1" substyle="BgTitleGlow" halign="center" valign="center"/>-->
 				
-		<quad class="" size="157.5 107" pos="-3 -1" style="ManiaplanetSystem" substyle="BgFloat" halign="center" valign="center"/>
+		<quad z-index="-1" class="" size="157.5 107" pos="-3 -1" style="ManiaplanetSystem" substyle="BgFloat" halign="center" valign="center"/>
 		<quad posn="-3 0" sizen="158 109" style="Bgs1" substyle="BgCardList" halign="center" valign="center" opacity="0.75" hidden="1"/>
 		
 	</frame>
@@ -693,20 +693,20 @@ main() {
 Text getModalStartOrQuitManialink() {
 	return """
 	<!--modal No/Yes window-->
-	<frame posn="0 0 10">
-		<frame posn="0 0 1" id="booleandialog" hidden="0">
-			<quad posn="0 15.5 2" sizen="126.5 8" style="Bgs1InRace" substyle="BgGlow2" halign="center" valign="center"/>
-			<quad posn="0 -16 2" sizen="120 2" style="Bgs1InRace" substyle="BgMetalBar" halign="center" valign="center"/>
+	<frame pos="0 0" z-index="0">
+		<frame z-index="0" pos="0 0" id="booleandialog" hidden="0">
+			<quad z-index="2" pos="0 15.5" sizen="126.5 8" style="Bgs1InRace" substyle="BgGlow2" halign="center" valign="center"/>
+			<quad z-index="2" pos="0 -16" sizen="120 2" style="Bgs1InRace" substyle="BgMetalBar" halign="center" valign="center"/>
 	
-			<label posn="0 5 1" sizen="120 10" text="myLabel" autonewline="1" valign="center" halign="center" id="booleandialog_content"/>
-			<frame posn="-25 -5">
-				<label posn="0 0 1" sizen="20 5" text="No" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="booleandialog_btnno"/>
-				<label posn="50 0 1" sizen="20 5" text="Yes" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="booleandialog_btnyes"/>
+			<label z-index="2" pos="0 5" sizen="120 10" text="myLabel" autonewline="1" valign="center" halign="center" id="booleandialog_content"/>
+			<frame z-index="3" pos="-25 -5">
+				<label z-index="0" pos="0 0" sizen="20 5" text="No" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="booleandialog_btnno"/>
+				<label z-index="0" pos="50 0" sizen="20 5" text="Yes" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="booleandialog_btnyes"/>
 			</frame>
 	
-			<quad posn="0 0 0" sizen="120 30" style="Bgs1InRace" substyle="BgWindow2" halign="center" valign="center" opacity="0.75" scriptevents="1"/>
+			<quad z-index="1" pos="0 0" sizen="120 30" style="Bgs1InRace" substyle="BgWindow2" halign="center" valign="center" opacity="0.75" scriptevents="1"/>
 		</frame>
-		<quad sizen="320 180" bgcolor="000A" halign="center" valign="center" id="booleandialog_bg" opacity="0"/>
+		<quad z-index="1" sizen="320 180" bgcolor="000A" halign="center" valign="center" id="booleandialog_bg" opacity="0"/>
 	</frame>
 	
 <script><!--
@@ -763,23 +763,14 @@ Text getChatPopupManialink() {
   	<style class="background" bgcolor="FFFFFFFF" style="Bgs1" substyle="BgTitleGlow" halign="center" valign="center" />
 		<style class="background2" style="Bgs1" substyle="BgCardList" halign="center" valign="center" opacity="0.75"/>
 	</stylesheet>
-	
-	<!--<frame id="chat_popup" hidden="1">
+
+	<frame z-index="0" id="chat_popup" hidden="1">
 		
-		<label pos="128 -38" size="54.9 5" text="New message:" halign="center" valign="center" scriptevents="1" id="frompopup"/>
-		<quad pos="128 -41" z-index="0" size="54.9 5" bgcolor="FFFA" style="EnergyBar" substyle="HeaderGaugeRight" halign="center" valign="center"/>
-		<label pos="101 -43" size="54 14" text="This is a test message for the popup test view" class="text" id="messagepopup"/>
-		<quad class="background" size="57 24" pos="128 -47"/>
-		<quad class="background2" size="57 24" pos="128 -47"/>
-	
-	</frame>-->
-	<frame id="chat_popup" hidden="1">
-		
-		<label pos="128 -37.8" size="25 5" text="New message:" halign="center" valign="center" id="frompopup" textfont="RajdhaniMono"/>
-		<quad pos="128 -38.5" z-index="0" size="57 7" bgcolor="FFFA" style="Bgs1" substyle="BgTitle" halign="center" valign="center" /><!--BgWindow4 colorize="F00"  Bgs1 BgTitle-->
-		<quad pos="128 -41" z-index="0" size="54.9 3" bgcolor="FFFA" style="EnergyBar" substyle="HeaderGaugeRight" halign="center" valign="center" hidden="1"/>
-		<label pos="101 -43" size="54 14" text="This is a test message for the popup test view" class="text" id="messagepopup" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx"/>
-		<quad class="background" size="57.5 23" pos="128 -47" style="ManiaplanetSystem" substyle="BgFloat"/>
+		<label z-index="3" pos="128 -37.8" size="25 5" text="New message:" halign="center" valign="center" id="frompopup" textfont="RajdhaniMono"/>
+		<quad z-index="2" pos="128 -38.5" size="57 7" bgcolor="FFFA" style="Bgs1" substyle="BgTitle" halign="center" valign="center" /><!--BgWindow4 colorize="F00"  Bgs1 BgTitle-->
+		<quad pos="128 -41" z-index="1" size="54.9 3" bgcolor="FFFA" style="EnergyBar" substyle="HeaderGaugeRight" halign="center" valign="center" hidden="1"/>
+		<label z-index="2" pos="101 -43" size="54 14" text="This is a test message for the popup test view" class="text" id="messagepopup" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx"/>
+		<quad z-index="0" class="background" size="57.5 23" pos="128 -47" style="ManiaplanetSystem" substyle="BgFloat"/>
 		<quad class="background2" size="57 24" pos="128 -47" hidden="1"/>
 	
 	</frame>
@@ -847,21 +838,21 @@ Text getServerSettingsManialink(Text _HOST) {
  return """
 <frame id ="FrameServerSettings" z-index="5" pos="26 25" scale="0.7">
 
-			<label posn="-95 4" sizen="48 17" text="Server Settings "  valign="center" textfont="RajdhaniMono" translate="0" textsize="7" halign="left"/>
-			<quad pos="-95 -2.47"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>
+			<label z-index="1" posn="-95 4" sizen="48 17" text="Server Settings "  valign="center" textfont="RajdhaniMono" translate="0" textsize="7" halign="left"/>
+			<quad z-index="0" pos="-95 -2.47"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>
 			
-			<frame pos="4 2">
-			<label pos="-97 -8"  size="96 7" text="Server Adress: " textsize="5" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" autonewline="1" halign="left"/>	
-			<quad pos="-97 -15.47"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>
-			<entry posn="-86 -20" sizen="102 6" valign="center" halign="left" id="serveradresse" scriptevents="1" focusareacolor1="0002" focusareacolor2="0003" default="{{{_HOST}}}" textformat="Basic"/>
-			<label pos="-97 -25"  size="96 7" text="Server Password : " textsize="5" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" autonewline="1" halign="left"/>
-			<quad pos="-97 -32.47"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>	
-			<entry posn="-86 -37" sizen="102 6" valign="center" halign="left" id="serverpass" scriptevents="1" focusareacolor1="0002" focusareacolor2="0003" textformat="Password"/>
+			<frame z-index="1" pos="4 2">
+			<label z-index="1" pos="-97 -8"  size="96 7" text="Server Adress: " textsize="5" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" autonewline="1" halign="left"/>	
+			<quad z-index="0" pos="-97 -15.47"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>
+			<entry z-index="1" pos="-86 -20" sizen="102 6" valign="center" halign="left" id="serveradresse" scriptevents="1" focusareacolor1="0002" focusareacolor2="0003" default="{{{_HOST}}}" textformat="Basic"/>
+			<label z-index="1" pos="-97 -25"  size="96 7" text="Server Password : " textsize="5" textfont="file://Media/Font/BiryaniDemiBold.Font.gbx" autonewline="1" halign="left"/>
+			<quad z-index="0" pos="-97 -32.47"  size="10 1" bgcolor="FFFA" style="Bgs1" substyle="BgWindow4"/>	
+			<entry z-index="1" pos="-86 -37" sizen="102 6" valign="center" halign="left" id="serverpass" scriptevents="1" focusareacolor1="0002" focusareacolor2="0003" textformat="Password"/>
 			</frame>
-			<label posn="-54.9 -45.5" sizen="20 5" text="Cancel" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="server_btncancel"/>
-			<label posn="-15.9 -45.5" sizen="20 5" text="Save" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="server_btnsave"/>
+			<label z-index="1" pos="-54.9 -45.5" sizen="20 5" text="Cancel" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="server_btncancel"/>
+			<label z-index="1" pos="-15.9 -45.5" sizen="20 5" text="Save" valign="center" halign="center" style="CardButtonMedium" scriptevents="1" id="server_btnsave"/>
 	
-			<quad posn="-35 -22" sizen="132 66"  halign="center" opacity="1" bgcolor="8F8F8FFF" valign="center" scriptevents="1"/>
+			<quad z-index="0" pos="-35 -22" sizen="132 66"  halign="center" opacity="1" bgcolor="8F8F8FFF" valign="center" scriptevents="1"/>
 </frame>
 <script><!--
 #Include "TextLib" as TL

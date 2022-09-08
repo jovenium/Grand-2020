@@ -14,6 +14,17 @@ const client = redis.createClient({
   });
 console.log("ok");
 
+client.on('connect', function() {
+    console.log("Redis connection is up!");
+    setRedisStatus(true);
+});
+
+client.on('error', function(err) {
+    setRedisStatus(false);
+});
+
+client.connect().catch((error) => console.log("Redis Connection Failed:client.connect()"));;
+
 /** Generate an uuid
  * @url https://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript#2117523 **/
  function uuidv4() {
@@ -64,16 +75,16 @@ function getPluginVersion() {
 
 function redisIncrPlayer(login){
     if (!RedisStatus) return;
-    client.incr("player_party_count:"+login);
+    client.incr("player_party_count:"+login).catch((error) => console.log("Redis Connection Failed:incr.player_party_count:login"));
 }
 
 function redisIncrGlobalPartyCount(){
     if (!RedisStatus) return;
-    client.incr("global_party_count");
+    client.incr("global_party_count").catch((error) => console.log("Redis Connection Failed:incr.global_party_count"));
 }
 
-async function setRedisStatus(){
-    RedisStatus = false;
+async function setRedisStatus(status){
+    RedisStatus = status;
     console.log("Redis Connection Status :");
     console.log(RedisStatus);
 }
@@ -84,10 +95,9 @@ module.exports = function (eventDispatcher) {
      * Setup redis database
      */
     //client.on('error', (err) =>  console.log('Redis Client Error', err));
-    client.on('error', (err) => setRedisStatus());
-    client.connect();
+    
     if(RedisStatus){
-        client.setNX("global_party_count", "0");
+        client.setNX("global_party_count", "0").catch((error) => console.log("Redis Connection Failed:setNX.global_party_count"));
     }
     
 
@@ -104,8 +114,8 @@ module.exports = function (eventDispatcher) {
         var global_player_count = 0;
 
         if (RedisStatus){
-        global_party_count = await client.get("global_party_count");
-        global_player_count = await client.keys("player_party_count:*");
+        global_party_count = await client.get("global_party_count").catch((error) => console.log("Redis Connection Failed:get.global_party_count"));
+        global_player_count = await client.keys("player_party_count:*").catch((error) => console.log("Redis Connection Failed:keys.player_party_count:*"));
         global_player_count = global_player_count.length;
         }
 
